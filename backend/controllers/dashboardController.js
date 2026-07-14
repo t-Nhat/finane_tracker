@@ -83,4 +83,102 @@ const getCategoryDataForChart = async (req, res) => {
   }
 };
 
-module.exports = { getMonthlyStats, getCategoryDataForChart };
+const getCashflow14Days = async (req, res) => {
+  try {
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 13);
+    fourteenDaysAgo.setHours(0, 0, 0, 0);
+
+    // Lọc giao dịch trong 14 ngày và nhóm theo Ngày + Loại (Thu/Chi)
+    const stats = await Transaction.aggregate([
+      { $match: { date: { $gte: fourteenDaysAgo } } },
+      {
+        $group: {
+          _id: {
+            date: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+            type: "$type"
+          },
+          total: { $sum: "$amount" }
+        }
+      }
+    ]);
+
+    const labels = [];
+    const incomeData = [];
+    const expenseData = [];
+
+    // Tạo mảng chuẩn 14 ngày liên tục (kể cả ngày không có giao dịch thì gán = 0)
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().slice(0, 10);
+      const displayDate = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+      
+      labels.push(displayDate);
+
+      const inc = stats.find(item => item._id.date === dateStr && item._id.type === 'Thu');
+      const exp = stats.find(item => item._id.date === dateStr && item._id.type === 'Chi');
+
+      incomeData.push(inc ? inc.total : 0);
+      expenseData.push(exp ? exp.total : 0);
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: { labels, incomeData, expenseData },
+      message: "Lấy dữ liệu dòng tiền 14 ngày thành công"
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getNetWorth = async (req, res) => {
+  try {
+    // 1. Tính tổng tiền hiện có trong các tài khoản (Tổng Thu trừ Tổng Chi)
+    const txStats = await Transaction.aggregate([
+      { $group: { _id: "$type", total: { $sum: "$amount" } } }
+    ]);
+    let totalIncome = 0;
+    let totalExpense = 0;
+    txStats.forEach(item => {
+      if (item._id === 'Thu') totalIncome = item.total;
+      if (item._id === 'Chi') totalExpense = item.total;
+    });
+    const cashBalance = totalIncome - totalExpense;
+
+    // 2. Tính tiền vay mượn cá nhân (Chưa thanh toán)
+    const loans = await Loan.find({ status: 'PENDING' });
+    let totalLend = 0;   // Tiền mình cho người khác mượn
+    let totalBorrow = 0; // Tiền mình đang đi mượn
+    loans.forEach(item => {
+      if (item.type === 'LEND') totalLend += item.amount;
+      if (item.type === 'BORROW') totalBorrow += item.amount;
+    });
+
+    // 3. Tính tiền tích góp trong Heo tiết kiệm
+    const savings = await SavingsGoal.find();
+    const totalSavings = savings.reduce((sum, item) => sum + (item.currentAmount || 0), 0);
+
+    // 4. Tính nợ tổ chức (Thẻ tín dụng, vay ngân hàng, trả góp)
+    const debts = await CreditDebt.find();
+    const totalOrgDebt = debts.reduce((sum, item) => sum + (item.currentDebt || 0), 0);
+
+    // 5. Áp dụng công thức tính Tài Sản Thực
+    const netWorth = (cashBalance + totalLend + totalSavings) - (totalBorrow + totalOrgDebt);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        netWorth,
+        breakdown: { cashBalance, totalLend, totalSavings, totalBorrow, totalOrgDebt }
+      },
+      message: "Tính toán tổng tài sản thực thành công"
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Cập nhật dòng export cuối cùng của file
+module.exports = { getMonthlyStats, getCategoryDataForChart, getCashflow14Days, getNetWorth };

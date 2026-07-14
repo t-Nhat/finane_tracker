@@ -17,6 +17,13 @@ mongoose.connect('mongodb://localhost:27017/finance_tracker')
 //app.use('/api/transactions', require('./routes/transactionRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/budget', require('./routes/budgetRoutes'));
+app.use('/api/loans', require('./routes/loanRoutes'));
+app.use('/api/credit-debts', require('./routes/creditDebtRoutes'));
+app.use('/api/savings-goals', require('./routes/savingsGoalRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/data-transfer', require('./routes/dataTransferRoutes'));
+app.use('/api/backups', require('./routes/backupRoutes'));
+
 
 // Khởi động server tại cổng 5000
 const PORT = 5000;

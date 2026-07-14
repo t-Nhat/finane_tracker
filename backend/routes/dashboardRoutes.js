@@ -4,5 +4,7 @@ const { getMonthlyStats, getCategoryDataForChart } = require('../controllers/das
 
 router.get('/stats', getMonthlyStats);
 router.get('/chart-data', getCategoryDataForChart);
+router.get('/cashflow-14days', getCashflow14Days);
+router.get('/net-worth', getNetWorth);
 
 module.exports = router;
