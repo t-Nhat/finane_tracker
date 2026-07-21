@@ -1,65 +1,45 @@
 const express = require('express');
 const router = express.Router();
-const Loan = require('../models/loanModel');
-const CreditDebt = require('../models/creditDebtModel');
+const Budget = require('../models/budgetModel');
+const Transaction = require('../models/transactionModel');
 
-// API lấy toàn bộ cảnh báo khẩn cấp
 router.get('/check', async (req, res) => {
   try {
     const alerts = [];
-    const now = new Date();
-    const threeDaysLater = new Date();
-    threeDaysLater.setDate(now.getDate() + 3);
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const budget = await Budget.findOne({ month: currentMonth });
 
-    // 1. Quét các khoản vay/mượn cá nhân sắp đến hạn hoặc quá hạn
-    const pendingLoans = await Loan.find({ status: 'PENDING' });
-    
-    pendingLoans.forEach(loan => {
-      if (loan.dueDate) {
-        const dueDate = new Date(loan.dueDate);
-        const actionText = loan.type === 'LEND' ? 'thu hồi tiền cho mượn từ' : 'thanh toán nợ cho';
-        
-        if (dueDate < now) {
-          alerts.push({
-            id: loan._id,
-            level: 'CRITICAL',
-            title: '⚠️ ĐÃ QUÁ HẠN THANH TOÁN',
-            message: `Khoản ${actionText} [${loan.personName}] trị giá ${loan.amount.toLocaleString('vi-VN')} đ đã quá hạn!`
-          });
-        } else if (dueDate <= threeDaysLater) {
-          alerts.push({
-            id: loan._id,
-            level: 'WARNING',
-            title: '⏰ SẮP ĐẾN HẠN TRẢ NỢ',
-            message: `Còn dưới 3 ngày để ${actionText} [${loan.personName}]: ${loan.amount.toLocaleString('vi-VN')} đ.`
-          });
-        }
+    if (budget && budget.limitAmount > 0) {
+      const [year, monthNum] = currentMonth.split('-');
+      const startDate = new Date(year, monthNum - 1, 1);
+      const endDate = new Date(year, monthNum, 0, 23, 59, 59);
+
+      const expenseStats = await Transaction.aggregate([
+        { $match: { type: 'Chi', date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, totalExpense: { $sum: "$amount" } } }
+      ]);
+
+      const totalExpense = expenseStats.length > 0 ? expenseStats[0].totalExpense : 0;
+      const percentUsed = Math.round((totalExpense / budget.limitAmount) * 100);
+
+      if (totalExpense > budget.limitAmount) {
+        alerts.push({
+          id: 'exceeded',
+          level: 'CRITICAL',
+          title: '⚠️ VƯỢT HẠN MỨC CHI TIÊU',
+          message: `Tháng này ông đã chi ${totalExpense.toLocaleString('vi-VN')} đ, vượt hạn mức ${budget.limitAmount.toLocaleString('vi-VN')} đ!`
+        });
+      } else if (percentUsed >= 80) {
+        alerts.push({
+          id: 'warning',
+          level: 'WARNING',
+          title: '⏰ SẮP ĐẠT HẠN MỨC',
+          message: `Ông đã tiêu hết ${percentUsed}% ngân sách tháng này (${totalExpense.toLocaleString('vi-VN')} đ / ${budget.limitAmount.toLocaleString('vi-VN')} đ).`
+        });
       }
-    });
+    }
 
-    // 2. Quét thẻ tín dụng và vay tổ chức
-    const currentDay = now.getDate();
-    const activeDebts = await CreditDebt.find({ currentDebt: { $gt: 0 } });
-
-    activeDebts.forEach(debt => {
-      if (debt.dueDateDay) {
-        const diffDay = debt.dueDateDay - currentDay;
-        if (diffDay >= 0 && diffDay <= 3) {
-          alerts.push({
-            id: debt._id,
-            level: 'WARNING',
-            title: '💳 ĐẾN NGÀY CHỐT THẺ',
-            message: `Khoản [${debt.name}] đến hạn thanh toán ngày ${debt.dueDateDay} hàng tháng. Dư nợ: ${debt.currentDebt.toLocaleString('vi-VN')} đ.`
-          });
-        }
-      }
-    });
-
-    res.status(200).json({
-      success: true,
-      data: alerts,
-      message: 'Kiểm tra thông báo nhắc nhở thành công'
-    });
+    res.status(200).json({ success: true, data: alerts });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
