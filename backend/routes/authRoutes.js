@@ -22,12 +22,22 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: "Vui lòng nhập đầy đủ thông tin!" });
     }
 
+    const fallbackEmail = userEmail.includes('@') ? userEmail : `${userEmail}@example.com`;
+
     const user = await User.findOne({ 
-      $or: [{ email: userEmail }, { username: userEmail }] 
+      $or: [
+        { email: userEmail }, 
+        { username: userEmail },
+        { email: fallbackEmail }
+      ] 
     });
 
     if (!user) {
       return res.status(400).json({ message: "Sai tên đăng nhập hoặc mật khẩu!" });
+    }
+
+    if (!user.password) {
+      return res.status(400).json({ message: "Tài khoản này đăng nhập bằng Google hoặc chưa thiết lập mật khẩu!" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -42,13 +52,14 @@ router.post('/login', async (req, res) => {
       token, 
       user: {
         id: user._id,
-        name: user.name || user.username || user.email.split('@')[0],
-        email: user.email || user.username
+        name: user.name || user.username || (user.email ? user.email.split('@')[0] : 'Người dùng'),
+        username: user.username || (user.email ? user.email.split('@')[0] : 'user'),
+        email: user.email || user.username || ''
       }
     });
   } catch (error) {
     console.error("Lỗi đăng nhập:", error);
-    return res.status(500).json({ message: "Lỗi máy chủ khi đăng nhập!" });
+    return res.status(500).json({ message: error.message || "Lỗi máy chủ khi đăng nhập!" });
   }
 });
 
@@ -64,8 +75,14 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: "Vui lòng nhập đầy đủ thông tin!" });
     }
 
+    const fallbackEmail = userEmail.includes('@') ? userEmail : `${userEmail}@example.com`;
+
     const existingUser = await User.findOne({ 
-      $or: [{ email: userEmail }, { username: userEmail }] 
+      $or: [
+        { email: userEmail }, 
+        { username: userEmail },
+        { email: fallbackEmail }
+      ] 
     });
     
     if (existingUser) {
@@ -76,8 +93,8 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const newUser = new User({
-      name: name || userEmail.split('@')[0],
-      email: userEmail,
+      name: name || (userEmail.includes('@') ? userEmail.split('@')[0] : userEmail),
+      email: userEmail.includes('@') ? userEmail : `${userEmail}@example.com`,
       username: userEmail,
       password: hashedPassword
     });
@@ -91,12 +108,13 @@ router.post('/register', async (req, res) => {
       user: {
         id: newUser._id,
         name: newUser.name,
-        email: newUser.email || newUser.username
+        username: newUser.username || (newUser.email ? newUser.email.split('@')[0] : 'user'),
+        email: newUser.email || newUser.username || ''
       }
     });
   } catch (error) {
     console.error("Lỗi đăng ký:", error);
-    return res.status(500).json({ message: "Lỗi máy chủ khi đăng ký!" });
+    return res.status(500).json({ message: error.message || "Lỗi máy chủ khi đăng ký!" });
   }
 });
 

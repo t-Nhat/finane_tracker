@@ -23,7 +23,7 @@ function AuthForm({ onLoginSuccess }) {
       if (response.ok) {
         alert(data.message); 
         if (isLoginMode) {
-          onLoginSuccess(data.token, data.username); 
+          onLoginSuccess(data); 
         } else {
           setIsLoginMode(true);
           setPassword(''); 
@@ -96,7 +96,7 @@ function AuthForm({ onLoginSuccess }) {
 
                     if (res.ok) {
                       alert(data.message); // Báo Đăng nhập thành công!
-                      onLoginSuccess(data.token, data.username); // Mở cửa cho vào web
+                      onLoginSuccess(data); // Mở cửa cho vào web
                     } else {
                       alert(`❌ Lỗi: ${data.message}`);
                     }

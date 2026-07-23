@@ -10,10 +10,28 @@ import {
   Legend,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import { useRefresh } from '../context/RefreshContext';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
+// Lấy Token an toàn
+const getToken = () => {
+  const token = localStorage.getItem('token');
+  if (token) return token;
+  const savedUser = localStorage.getItem('mern_finance_user');
+  if (savedUser) {
+    try {
+      const parsed = JSON.parse(savedUser);
+      return parsed.token || null;
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+};
+
 export default function CashflowFluctuation() {
+  const { refreshKey } = useRefresh();
   const [timeframe, setTimeframe] = useState('thang');
   const [metric, setMetric] = useState('chitieu');
   const [comparePeriod, setComparePeriod] = useState(true);
@@ -33,6 +51,8 @@ export default function CashflowFluctuation() {
     let isMounted = true;
     setLoading(true);
 
+    const token = getToken();
+
     // Lấy ID tài khoản đang đăng nhập từ localStorage
     const rawUser = localStorage.getItem('mern_finance_user') || localStorage.getItem('user') || localStorage.getItem('userInfo');
     let userId = '60d5ecb8b392d700153ee002'; // Fallback mặc định cho active@example.com
@@ -46,9 +66,12 @@ export default function CashflowFluctuation() {
       }
     }
 
-    axios.get(`http://localhost:5000/api/dashboard/fluctuation`, {
+    axios.get(`http://localhost:5001/api/dashboard/fluctuation`, {
       params: { timeframe, metric, userId },
-      headers: { 'user-id': userId }
+      headers: { 
+        'user-id': userId,
+        'Authorization': `Bearer ${token}` 
+      }
     })
       .then((res) => {
         if (!isMounted) return;
@@ -90,7 +113,7 @@ export default function CashflowFluctuation() {
     return () => {
       isMounted = false;
     };
-  }, [timeframe, metric]);
+  }, [timeframe, metric, refreshKey]);
 
   // AN TOÀN TUYỆT ĐỐI: Tạo mảng phòng thủ chống lỗi .every() trên undefined
   const safeCurrentData = Array.isArray(apiData?.currentData) ? apiData.currentData : [];

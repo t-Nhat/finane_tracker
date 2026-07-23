@@ -1,0 +1,46 @@
+{
+  "sidebar": {
+    "dashboard": "Tổng quan",
+    "transactions": "Thu Chi & Giao Dịch",
+    "budget": "Hạn Mức Chi Tiêu",
+    "cashflow": "Biến Động Dòng Tiền",
+    "account": "Tài Khoản Của Tôi"
+  },
+  "header": {
+    "title": "Quản Lý Tài Chính Cá Nhân"
+  },
+  "account": {
+    "help_center": "Trung tâm trợ giúp",
+    "notifications": "Cài đặt thông báo",
+    "feedback": "Chia sẻ góp ý",
+    "account_settings": "Cài đặt tài khoản",
+    "general_info": "Thông tin chung",
+    "language": "Ngôn ngữ",
+    "not_logged_in": "Chưa đăng nhập",
+    "login_prompt": "Vui lòng đăng nhập để xem thông tin chi tiết",
+    "logout": "Đăng xuất",
+    "login": "Đăng nhập",
+    "user": "Người dùng",
+    "no_phone": "Chưa cập nhật SĐT",
+    "coming_soon": "Coming soon!",
+    "feature_in_dev": "Tính năng này đang được phát triển.",
+    "back": "Quay lại",
+    "email_notif": "Nhận thông báo qua Email",
+    "push_notif": "Thông báo đẩy (Push Notifications)",
+    "weekly_report": "Báo cáo tuần/tháng",
+    "lang_vi": "Tiếng Việt",
+    "lang_en": "Tiếng Anh (English)",
+    "username": "Tên đăng nhập:",
+    "email": "Email:",
+    "join_date": "Ngày tham gia:",
+    "status": "Trạng thái tài khoản:",
+    "active": "Đang hoạt động",
+    "unknown": "Không rõ",
+    "display_name": "Tên hiển thị",
+    "phone": "Số điện thoại",
+    "save_changes": "Lưu thay đổi",
+    "saving": "Đang lưu...",
+    "update_success": "Cập nhật thành công! Vui lòng tải lại trang để thấy thay đổi.",
+    "update_fail": "Cập nhật thất bại!"
+  }
+}

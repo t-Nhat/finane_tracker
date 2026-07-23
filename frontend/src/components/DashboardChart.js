@@ -1,10 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
+import { useRefresh } from '../context/RefreshContext';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
+// Lấy Token an toàn
+const getToken = () => {
+  const token = localStorage.getItem('token');
+  if (token) return token;
+  const savedUser = localStorage.getItem('mern_finance_user');
+  if (savedUser) {
+    try {
+      const parsed = JSON.parse(savedUser);
+      return parsed.token || null;
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+};
+
 const DashboardChart = () => {
+  const { refreshKey } = useRefresh();
   const [chartData, setChartData] = useState({
     labels: [],
     datasets: []
@@ -16,7 +34,12 @@ const DashboardChart = () => {
   useEffect(() => {
     const fetchChartData = async () => {
       try {
-        const response = await fetch('/api/dashboard/category-data'); // Đảm bảo đúng route API của ông
+        const token = getToken();
+        const response = await fetch('http://localhost:5001/api/dashboard/category-data', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         const result = await response.json();
 
         if (result.success && result.data) {
@@ -55,7 +78,7 @@ const DashboardChart = () => {
     };
 
     fetchChartData();
-  }, []);
+  }, [refreshKey]);
 
   // HIỂN THỊ LÚC ĐANG TẢI
   if (loading) {

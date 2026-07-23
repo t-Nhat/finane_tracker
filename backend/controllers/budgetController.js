@@ -1,5 +1,5 @@
-const Budget = require('../models/budgetModel');
-const Transaction = require('../models/transactionModel');
+const Budget = require('../models/Budget');
+const Transaction = require('../models/Transaction');
 
 const setBudget = async (req, res) => {
   try {

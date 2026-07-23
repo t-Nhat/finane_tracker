@@ -1,0 +1,46 @@
+{
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "transactions": "Transactions",
+    "budget": "Budget Limits",
+    "cashflow": "Cashflow",
+    "account": "My Account"
+  },
+  "header": {
+    "title": "Personal Finance Manager"
+  },
+  "account": {
+    "help_center": "Help Center",
+    "notifications": "Notification Settings",
+    "feedback": "Share Feedback",
+    "account_settings": "Account Settings",
+    "general_info": "General Information",
+    "language": "Language",
+    "not_logged_in": "Not logged in",
+    "login_prompt": "Please log in to view details",
+    "logout": "Log out",
+    "login": "Log in",
+    "user": "User",
+    "no_phone": "Phone not updated",
+    "coming_soon": "Coming soon!",
+    "feature_in_dev": "This feature is under development.",
+    "back": "Back",
+    "email_notif": "Receive Email Notifications",
+    "push_notif": "Push Notifications",
+    "weekly_report": "Weekly/Monthly Reports",
+    "lang_vi": "Tiếng Việt",
+    "lang_en": "English",
+    "username": "Username:",
+    "email": "Email:",
+    "join_date": "Date Joined:",
+    "status": "Account Status:",
+    "active": "Active",
+    "unknown": "Unknown",
+    "display_name": "Display Name",
+    "phone": "Phone Number",
+    "save_changes": "Save Changes",
+    "saving": "Saving...",
+    "update_success": "Update successful! Please refresh the page.",
+    "update_fail": "Update failed!"
+  }
+}

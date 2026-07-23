@@ -30,3 +30,9 @@ backend/node_modules/
 frontend/node_modules/.cache/
 *.log
 .env
+
+# Chặn toàn bộ thư mục .agents (chứa rules của AI)
+.agents/
+
+# Chặn file CONTEXT.md
+CONTEXT.md

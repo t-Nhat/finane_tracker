@@ -19,4 +19,32 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
+// API Cập nhật thông tin tài khoản
+router.put('/profile', protect, async (req, res) => {
+  try {
+    const { name, phone } = req.body;
+    
+    // Tìm và cập nhật user
+    const updatedUser = await User.findByIdAndUpdate(
+      req.userId,
+      { 
+        $set: { 
+          name: name || undefined, 
+          phone: phone || undefined 
+        } 
+      },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy thông tin người dùng!' });
+    }
+
+    res.status(200).json({ success: true, message: 'Cập nhật thành công!', data: updatedUser });
+  } catch (error) {
+    console.error("Lỗi cập nhật profile:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router;

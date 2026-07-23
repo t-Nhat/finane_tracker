@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
+import { useRefresh } from '../context/RefreshContext';
 
 function TransactionForm({ onTransactionAdded }) {
+  const { triggerRefresh } = useRefresh();
   const [amount, setAmount] = useState('');
   const [type, setType] = useState('Chi');
   const [category, setCategory] = useState('Ăn uống');
   const [date, setDate] = useState('');
   const [note, setNote] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false); // 🟢 State loading
 
   // 🟢 Hàm lấy Token an toàn
   const getToken = () => {
@@ -52,6 +55,8 @@ function TransactionForm({ onTransactionAdded }) {
       note
     };
 
+    setIsSubmitting(true); // 🟢 Bắt đầu loading
+
     try {
       const token = getToken(); // 🟢 Lấy token
 
@@ -69,6 +74,7 @@ function TransactionForm({ onTransactionAdded }) {
         setAmount('');
         setNote('');
         setDate('');
+        triggerRefresh(); // 🟢 Đồng bộ các tab khác
         if (onTransactionAdded) {
             onTransactionAdded();
         }
@@ -78,6 +84,8 @@ function TransactionForm({ onTransactionAdded }) {
       }
     } catch (error) {
       console.error("Lỗi:", error);
+    } finally {
+      setIsSubmitting(false); // 🟢 Tắt loading
     }
   };
 
@@ -135,7 +143,9 @@ function TransactionForm({ onTransactionAdded }) {
         />
       </div>
 
-      <button type="submit" className="submit-btn">Lưu Giao Dịch</button>
+      <button type="submit" className="submit-btn" disabled={isSubmitting}>
+        {isSubmitting ? '⏳ Đang lưu...' : 'Lưu Giao Dịch'}
+      </button>
     </form>
   );
 }

@@ -1,6 +1,7 @@
 // src/App.js
 import React, { useState } from 'react';
 import './App.css';
+import { useLanguage } from './context/LanguageContext'; // 🟢 Import i18n
 
 // --- IMPORT CÁC COMPONENT TÍNH NĂNG ---
 import BudgetSetting from './components/BudgetSetting';
@@ -16,9 +17,10 @@ import Account from './components/Account';
 
 // --- COMPONENT AUTH ---
 import AuthPage from './components/AuthPage';
-import { LogOut } from 'lucide-react';
 
 function App() {
+  const { t } = useLanguage(); // 🟢 Sử dụng hàm dịch
+  
   // 1. STATE QUẢN LÝ USER (Kiểm tra đăng nhập từ localStorage)
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('mern_finance_user');
@@ -79,7 +81,7 @@ function App() {
           {/* LOGO BRAND */}
           <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-800">
             <h1 className="text-lg font-bold tracking-wider text-emerald-400 uppercase">
-              Quản Lý Chi Tiêu
+              {t('header.title')}
             </h1>
           </div>
 
@@ -93,7 +95,7 @@ function App() {
                   : 'hover:bg-slate-800 text-slate-300 hover:text-white'
               }`}
             >
-              Tổng Quan
+              {t('sidebar.dashboard')}
             </button>
 
             <button 
@@ -104,7 +106,7 @@ function App() {
                   : 'hover:bg-slate-800 text-slate-300 hover:text-white'
               }`}
             >
-              Thu Chi & Giao Dịch
+              {t('sidebar.transactions')}
             </button>
 
             <button 
@@ -115,7 +117,7 @@ function App() {
                   : 'hover:bg-slate-800 text-slate-300 hover:text-white'
               }`}
             >
-              Biến Động Dòng Tiền
+              {t('sidebar.cashflow')}
             </button>
 
             <button 
@@ -126,7 +128,7 @@ function App() {
                   : 'hover:bg-slate-800 text-slate-300 hover:text-white'
               }`}
             >
-              Tài Khoản Của Tôi
+              {t('sidebar.account')}
             </button>
 
             <button 
@@ -163,9 +165,9 @@ function App() {
         <header className="flex justify-between items-center mb-6 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 transition-colors">
           <div>
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-              {activeTab === 'dashboard' && 'Bảng Điều Khiển Tổng Quan'}
-              {activeTab === 'finance' && 'Quản Lý Thu Chi Chi Tiết'}
-              {activeTab === 'fluctuation' && 'Phân Tích Biến Động Dòng Tiền'}
+              {activeTab === 'dashboard' && t('sidebar.dashboard')}
+              {activeTab === 'finance' && t('sidebar.transactions')}
+              {activeTab === 'fluctuation' && t('sidebar.cashflow')}
               {activeTab === 'account' && 'Thông Tin Cá Nhân & Tài Khoản'}
               {activeTab === 'system' && 'Cài Đặt & Quản Lý Dữ Liệu'}
             </h2>
@@ -176,17 +178,6 @@ function App() {
 
           <div className="flex items-center gap-3">
             <NotificationBell />
-            <div className="h-4 w-[1px] bg-gray-200 dark:bg-slate-800 mx-1" />
-            
-            {/* NÚT LOGOUT */}
-            <button
-              onClick={handleLogout}
-              title="Đăng xuất khỏi tài khoản"
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-xs font-semibold transition-all cursor-pointer"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Đăng xuất</span>
-            </button>
           </div>
         </header>
 
@@ -225,7 +216,7 @@ function App() {
         {/* Tab 4: Trang Tài khoản */}
         {activeTab === 'account' && (
           <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800">
-            <Account user={user} />
+            <Account user={user} onLogout={handleLogout} />
           </div>
         )}
 

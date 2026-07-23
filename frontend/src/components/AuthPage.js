@@ -42,7 +42,7 @@ const AuthPage = ({ onLoginSuccess }) => {
           throw new Error(data.message || 'Lỗi xử lý từ máy chủ');
         }
         
-        onLoginSuccess(data.user);
+        onLoginSuccess(data);
       } catch (err) {
         setError(err.message);
         localStorage.removeItem('mern_finance_user'); 
@@ -80,7 +80,7 @@ const AuthPage = ({ onLoginSuccess }) => {
 
       if (!response.ok) throw new Error(data.message || 'Sai thông tin đăng nhập');
 
-      onLoginSuccess(data.user || { name: formData.name || formData.email.split('@')[0], email: formData.email });
+      onLoginSuccess(data);
     } catch (err) {
       setError(err.message);
     } finally {

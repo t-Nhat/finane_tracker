@@ -96,4 +96,85 @@ router.get('/charts', async (req, res) => {
   }
 });
 
+// 4. API cho biểu đồ tròn (Pie Chart) - gom nhóm theo danh mục
+router.get('/category-data', async (req, res) => {
+  try {
+    const userObjId = getValidUserId(req);
+    const db = mongoose.connection;
+    const transactions = await db.collection('transactions').find(buildQuery(userObjId)).toArray();
+    
+    const categoryMap = {};
+    transactions.forEach(t => {
+      if (t.type === 'Chi') { 
+        const cat = t.category || 'Khác';
+        categoryMap[cat] = (categoryMap[cat] || 0) + Number(t.amount || 0);
+      }
+    });
+    
+    const data = Object.keys(categoryMap).map(key => ({
+      category: key,
+      amount: categoryMap[key]
+    }));
+    
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi tải dữ liệu danh mục' });
+  }
+});
+
+// 5. API cho Biến động dòng tiền (Fluctuation)
+router.get('/fluctuation', async (req, res) => {
+  try {
+    const userObjId = getValidUserId(req);
+    const { timeframe = 'thang', metric = 'chitieu' } = req.query;
+    const db = mongoose.connection;
+    const transactions = await db.collection('transactions').find(buildQuery(userObjId)).toArray();
+    
+    const labels = [];
+    const currentData = [];
+    const previousData = [];
+    let totalAmount = 0;
+
+    const today = new Date();
+    // Tạo 7 mốc thời gian gần nhất
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      labels.push(`T${d.getMonth() + 1}`);
+      currentData.push(0);
+      previousData.push(0); 
+    }
+
+    transactions.forEach(t => {
+      const matchType = metric === 'thunhap' ? 'Thu' : 'Chi';
+      if (t.type === matchType && t.date) {
+        const tDate = new Date(t.date);
+        
+        // Chỉ tính tổng amount của toàn bộ
+        totalAmount += Number(t.amount || 0);
+        
+        // Phân bổ vào mốc tương ứng
+        const monthDiff = (today.getFullYear() - tDate.getFullYear()) * 12 + today.getMonth() - tDate.getMonth();
+        if (monthDiff >= 0 && monthDiff <= 6) {
+          currentData[6 - monthDiff] += Number(t.amount || 0);
+        }
+      }
+    });
+
+    const diffAmount = currentData[6] - currentData[5]; 
+
+    return res.status(200).json({ 
+      success: true, 
+      data: {
+        labels,
+        currentData,
+        previousData,
+        totalAmount,
+        diffAmount
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Lỗi tải biến động' });
+  }
+});
+
 module.exports = router;

@@ -49,6 +49,9 @@ app.use('/api/users', safeImportRoute('./routes/userRoutes'));
 app.use('/api/transactions', safeImportRoute('./routes/transactionRoutes'));
 app.use('/api/dashboard', safeImportRoute('./routes/dashboardRoutes'));
 app.use('/api/notifications', safeImportRoute('./routes/notificationRoutes'));
+const budgetRoutes = safeImportRoute('./routes/budgetRoutes');
+app.use('/api/budget', budgetRoutes);
+app.use('/api/budgets', budgetRoutes);
 app.use('/api/savings-goals', safeImportRoute('./routes/savingsGoalRoutes'));
 app.use('/api/loans', safeImportRoute('./routes/loanRoutes'));
 

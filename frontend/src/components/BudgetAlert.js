@@ -9,7 +9,10 @@ const BudgetAlert = () => {
   useEffect(() => {
     const checkBudget = async () => {
       try {
-        const response = await fetch('/api/budget/check');
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:5001/api/budget/check', {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
         const result = await response.json();
         if (result.success && result.data) {
           setAlertData({

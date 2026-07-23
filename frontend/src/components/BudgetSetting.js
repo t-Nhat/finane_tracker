@@ -4,11 +4,13 @@ const BudgetSetting = () => {
   const [limitAmount, setLimitAmount] = useState('');
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
-      const response = await fetch('/api/budget', {
+      const response = await fetch('http://localhost:5001/api/budget', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -23,6 +25,8 @@ const BudgetSetting = () => {
       }
     } catch (error) {
       setMessage('Đã xảy ra lỗi khi kết nối máy chủ.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -52,7 +56,9 @@ const BudgetSetting = () => {
             min="0"
           />
         </div>
-        <button type="submit">Đặt hạn mức</button>
+        <button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? '⏳ Đang xử lý...' : 'Đặt hạn mức'}
+        </button>
       </form>
       {message && <p className="status-message">{message}</p>}
     </div>
