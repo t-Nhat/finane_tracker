@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const transactionRoutes = require('./routes/transactionRoutes'); 
 const authRoutes = require('./routes/authRoutes');
+const budgetRoutes = require('./routes/budgetRoutes');
 
 const app = express();
 app.use(cors());
@@ -16,6 +17,7 @@ mongoose.connect(mongoURI)
 
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/budget', budgetRoutes);
 
 const PORT = 5001;
 app.listen(PORT, () => {

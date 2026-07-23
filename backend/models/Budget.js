@@ -1,13 +1,14 @@
 const mongoose = require('mongoose');
 
 const budgetSchema = new mongoose.Schema({
-  category: { type: String, required: true }, // Vd: "Ăn uống"
-  amount: { type: Number, required: true },   // Vd: 3000000 (3 triệu)
-  month: { type: String, required: true },    // 🟢 Đã thêm dấu phẩy ở đây
+  category: { type: String, required: false }, // Cho phép null nếu là hạn mức tổng
+  amount: { type: Number, required: true },   
+  limitAmount: { type: Number },               // Thêm trường limitAmount
+  month: { type: String, required: true },    
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: false                            // Để tạm false nếu chưa làm Auth đồng bộ
   }
 }, { timestamps: true });
 

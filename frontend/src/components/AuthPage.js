@@ -30,13 +30,7 @@ const AuthPage = ({ onLoginSuccess }) => {
           body: JSON.stringify({ token: tokenResponse.access_token }),
         });
         
-        const text = await response.text();
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch (e) {
-          throw new Error(`Máy chủ Backend chưa phản hồi ở địa chỉ ${API_URL}`);
-        }
+        const data = await response.json();
         
         if (!response.ok) {
           throw new Error(data.message || 'Lỗi xử lý từ máy chủ');
@@ -44,7 +38,7 @@ const AuthPage = ({ onLoginSuccess }) => {
         
         onLoginSuccess(data);
       } catch (err) {
-        setError(err.message);
+        setError(err.message || 'Không thể kết nối đến máy chủ. Vui lòng thử lại.');
         localStorage.removeItem('mern_finance_user'); 
       } finally {
         setLoading(false);
@@ -70,19 +64,13 @@ const AuthPage = ({ onLoginSuccess }) => {
         body: JSON.stringify(formData),
       });
 
-      const text = await response.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        throw new Error('Không thể kết nối đến máy chủ Backend (Lỗi 404/500/CORS).');
-      }
+      const data = await response.json();
 
       if (!response.ok) throw new Error(data.message || 'Sai thông tin đăng nhập');
 
       onLoginSuccess(data);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Không thể kết nối đến máy chủ. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }

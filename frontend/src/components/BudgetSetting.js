@@ -10,10 +10,12 @@ const BudgetSetting = () => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      const token = localStorage.getItem('token'); // Giả sử token lưu ở đây
       const response = await fetch('http://localhost:5001/api/budget', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // Thêm Token vào Header
         },
         body: JSON.stringify({ limitAmount: Number(limitAmount), month }),
       });

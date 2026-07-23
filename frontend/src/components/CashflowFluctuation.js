@@ -53,23 +53,10 @@ export default function CashflowFluctuation() {
 
     const token = getToken();
 
-    // Lấy ID tài khoản đang đăng nhập từ localStorage
-    const rawUser = localStorage.getItem('mern_finance_user') || localStorage.getItem('user') || localStorage.getItem('userInfo');
-    let userId = '60d5ecb8b392d700153ee002'; // Fallback mặc định cho active@example.com
-    
-    if (rawUser) {
-      try {
-        const parsed = JSON.parse(rawUser);
-        userId = parsed.id || parsed._id || parsed.userId || userId;
-      } catch (e) {
-        console.warn('Lỗi đọc dữ liệu người dùng:', e);
-      }
-    }
-
     axios.get(`http://localhost:5001/api/dashboard/fluctuation`, {
-      params: { timeframe, metric, userId },
+      // Backend tự lấy userId từ token, không cần gửi thủ công
+      params: { timeframe, metric },
       headers: { 
-        'user-id': userId,
         'Authorization': `Bearer ${token}` 
       }
     })

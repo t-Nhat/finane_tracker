@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { setBudget, checkBudgetAlert } = require('../controllers/budgetController');
+const protect = require('../middleware/authMiddleware');
 
-router.post('/', setBudget);
-router.get('/check', checkBudgetAlert);
+router.post('/', protect, setBudget);
+router.get('/check', protect, checkBudgetAlert);
 
 module.exports = router;

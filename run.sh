@@ -2,7 +2,7 @@
 
 echo "🚀 Đang khởi động Backend..."
 cd backend
-node app.js & # <--- SỬA THÀNH NODE APP.JS Ở ĐÂY VÀ GIỮ LẠI DẤU &
+node server.js &
 
 echo "🎨 Đang khởi động Frontend..."
 cd ../frontend

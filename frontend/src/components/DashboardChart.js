@@ -35,40 +35,35 @@ const DashboardChart = () => {
     const fetchChartData = async () => {
       try {
         const token = getToken();
-        const response = await fetch('http://localhost:5001/api/dashboard/category-data', {
+        // 1. Sửa lại đúng endpoint đã được cấu hình trong `dashboardRoutes.js`
+        const response = await fetch('http://localhost:5001/api/dashboard/chart-data', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
         const result = await response.json();
 
-        if (result.success && result.data) {
-          const dataArray = result.data; // Dữ liệu backend trả về dạng [{category: '...', amount: 100}]
+        // 2. Xử lý đúng định dạng dữ liệu mới: { data: { labels: [], values: [] } }
+        if (result.success && result.data && result.data.labels && result.data.values) {
+          const { labels, values } = result.data;
 
-          // 1. KIỂM TRA RỖNG: Nếu mảng không có phần tử nào -> Bật cờ isEmpty lên
-          if (dataArray.length === 0) {
+          if (labels.length === 0) {
             setIsEmpty(true);
-            setLoading(false);
-            return;
+          } else {
+            setIsEmpty(false);
+            setChartData({
+              labels: labels,
+              datasets: [
+                {
+                  data: values,
+                  backgroundColor: [
+                    '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#64748b'
+                  ],
+                  borderWidth: 1,
+                }
+              ]
+            });
           }
-
-          // 2. NẾU CÓ DỮ LIỆU: Map ra mảng labels và amounts cho Chart.js
-          setIsEmpty(false);
-          const mappedLabels = dataArray.map(item => item.category);
-          const mappedAmounts = dataArray.map(item => item.amount);
-
-          setChartData({
-            labels: mappedLabels,
-            datasets: [
-              {
-                data: mappedAmounts,
-                backgroundColor: [
-                  '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'
-                ],
-                borderWidth: 1,
-              }
-            ]
-          });
         }
       } catch (error) {
         console.error("Lỗi khi tải dữ liệu biểu đồ:", error);
