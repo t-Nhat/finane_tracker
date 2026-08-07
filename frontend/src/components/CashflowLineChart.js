@@ -36,7 +36,7 @@ export default function CashflowLineChart() {
   const [chartData, setChartData] = useState(null);
 
   useEffect(() => {
-    const fetch14DaysData = async () => {
+    const fetch30DaysData = async () => {
       try {
         const token = getToken();
         const res = await fetch('http://localhost:5001/api/dashboard/cashflow-14days', {
@@ -47,7 +47,7 @@ export default function CashflowLineChart() {
         const json = await res.json();
         
         if (json.success && Array.isArray(json.data)) {
-          // Backend trả về mảng [{date, thu, chi}]
+          // Backend trả về mảng [{date, thu, chi}] tất cả các ngày trong tháng hiện tại (ví dụ: 01/07 - 31/07)
           const labels = json.data.map(item => item.date);
           const incomeData = json.data.map(item => item.thu);
           const expenseData = json.data.map(item => item.chi);
@@ -63,7 +63,7 @@ export default function CashflowLineChart() {
                 tension: 0.3,
                 fill: true,
                 pointBackgroundColor: '#10b981',
-                pointRadius: 4
+                pointRadius: 3
               },
               {
                 label: '📤 Tiền Chi',
@@ -73,7 +73,7 @@ export default function CashflowLineChart() {
                 tension: 0.3,
                 fill: true,
                 pointBackgroundColor: '#f43f5e',
-                pointRadius: 4
+                pointRadius: 3
               }
             ]
           });
@@ -83,7 +83,7 @@ export default function CashflowLineChart() {
       }
     };
 
-    fetch14DaysData();
+    fetch30DaysData();
   }, [refreshKey]);
 
   const options = {

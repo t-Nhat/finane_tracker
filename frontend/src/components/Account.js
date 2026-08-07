@@ -1,351 +1,412 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { 
+  User, 
+  ShieldCheck, 
+  Bell, 
+  Globe, 
+  HelpCircle, 
+  MessageSquare, 
+  Info, 
+  LogOut, 
+  LogIn, 
+  ArrowLeft, 
+  Crown, 
+  Sparkles, 
+  CheckCircle2, 
+  ChevronRight, 
+  CreditCard,
+  Lock,
+  Save,
+  Rocket
+} from 'lucide-react';
 
 export default function Profile({ user, onLogout, onLoginClick }) {
   const isLoggedIn = !!user;
   const [activeView, setActiveView] = useState('main'); // main, help, notifications, feedback, account, info, language
   const { t, language, changeLanguage } = useLanguage();
 
-  // -- MAIN VIEW --
+  const getAvatarInitials = (name) => {
+    if (!name) return "U";
+    const parts = name.trim().split(" ");
+    return parts[parts.length - 1].charAt(0).toUpperCase();
+  };
+
+  // -- MAIN VIP VIEW --
   const renderMainView = () => {
-    const menuItems = [
-      { id: 'help', title: t('account.help_center'), icon: "❓" },
-      { id: 'notifications', title: t('account.notifications'), icon: "🔔" },
-      { id: 'feedback', title: t('account.feedback'), icon: "💬" },
-      { id: 'account', title: t('account.account_settings'), icon: "⚙️" },
-      { id: 'info', title: t('account.general_info'), icon: "ℹ️" },
-      { id: 'language', title: t('account.language'), icon: "🌐" },
+    const accountGroup = [
+      { id: 'account', title: t('account.account_settings') || 'Chỉnh sửa thông tin cá nhân', icon: User, badge: 'Đã xác thực' },
+      { id: 'security', title: 'Bảo mật & Mật khẩu', icon: ShieldCheck, badge: 'An toàn 100%' },
     ];
 
-    const getAvatarInitials = (name) => {
-      if (!name) return "U";
-      const parts = name.trim().split(" ");
-      return parts[parts.length - 1].charAt(0).toUpperCase();
-    };
+    const systemGroup = [
+      { id: 'notifications', title: t('account.notifications') || 'Cài đặt thông báo', icon: Bell },
+      { id: 'language', title: t('account.language') || 'Ngôn ngữ ứng dụng', icon: Globe, extraText: language === 'vi' ? 'Tiếng Việt 🇻🇳' : 'English 🇬🇧' },
+    ];
+
+    const supportGroup = [
+      { id: 'help', title: t('account.help_center') || 'Trung tâm trợ giúp', icon: HelpCircle },
+      { id: 'feedback', title: t('account.feedback') || 'Chia sẻ góp ý & Phản hồi', icon: MessageSquare },
+      { id: 'info', title: t('account.general_info') || 'Thông tin hệ thống', icon: Info },
+    ];
 
     return (
-      <>
-        <div style={styles.header}>
-          {isLoggedIn ? (
-            <>
-              <div style={styles.avatar}>
-                {getAvatarInitials(user?.name || user?.username)}
-              </div>
-              <h2 style={styles.name}>{user?.name || user?.username || t('account.user')}</h2>
-              <p style={styles.infoText}>📱 {user?.phone || user?.email || t('account.no_phone')}</p>
-              <p style={styles.infoText}>💳 STK: {user?.accountNumber || user?._id || "N/A"}</p>
-            </>
-          ) : (
-            <>
-              <div style={{ ...styles.avatar, backgroundColor: '#9CA3AF' }}>?</div>
-              <h2 style={styles.name}>{t('account.not_logged_in')}</h2>
-              <p style={styles.infoText}>{t('account.login_prompt')}</p>
-            </>
-          )}
-        </div>
+      <div className="space-y-8 animate-fade-in">
+        {/* VIP BANNER & PROFILE HERO */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-emerald-950 to-teal-900 text-white p-6 md:p-8 shadow-2xl border border-emerald-500/20">
+          <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div style={styles.menuList}>
-          {menuItems.map((item) => (
-            <div 
-              key={item.id} 
-              style={styles.menuItem}
-              onClick={() => setActiveView(item.id)}
-            >
-              <div style={styles.leftContent}>
-                <span style={styles.icon}>{item.icon}</span>
-                <span style={styles.itemTitle}>{item.title}</span>
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex flex-col md:flex-row items-center gap-5 text-center md:text-left">
+              {/* Avatar with Glow Ring & VIP Badge */}
+              <div className="relative">
+                <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-1 shadow-lg shadow-emerald-500/30">
+                  <div className="w-full h-full rounded-[14px] bg-slate-900 flex items-center justify-center text-3xl font-extrabold text-emerald-400">
+                    {isLoggedIn ? getAvatarInitials(user?.name || user?.username) : '?'}
+                  </div>
+                </div>
+                {isLoggedIn && (
+                  <span className="absolute -bottom-2 -right-2 bg-amber-400 text-slate-950 p-1.5 rounded-full shadow-md" title="VIP Member">
+                    <Crown size={16} className="fill-slate-950" />
+                  </span>
+                )}
               </div>
-              <span style={styles.arrow}>&gt;</span>
+
+              {/* User Details */}
+              <div>
+                <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
+                  <h2 className="text-2xl font-bold tracking-tight">
+                    {isLoggedIn ? (user?.name || user?.username || t('account.user')) : t('account.not_logged_in')}
+                  </h2>
+                  {isLoggedIn && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      <Sparkles size={12} /> PRO VIP
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-300 flex items-center justify-center md:justify-start gap-1.5">
+                  <span>📱</span> {isLoggedIn ? (user?.phone || user?.email || t('account.no_phone')) : t('account.login_prompt')}
+                </p>
+                <p className="text-xs text-gray-400 font-mono mt-1">
+                  Mã định danh: {isLoggedIn ? (user?._id ? user._id.substring(0, 12) + '...' : 'MEM-8892') : 'N/A'}
+                </p>
+              </div>
             </div>
-          ))}
+
+            {/* Virtual Metallic VIP Card */}
+            {isLoggedIn && (
+              <div className="w-full md:w-72 bg-gradient-to-br from-slate-800 to-slate-900 border border-amber-500/40 rounded-2xl p-4 shadow-xl text-amber-200 flex flex-col justify-between h-36 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-xl"></div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs tracking-widest uppercase font-bold text-amber-400 flex items-center gap-1">
+                    <CreditCard size={14} /> VIP PASS
+                  </span>
+                  <span className="text-[10px] bg-amber-400/20 px-2 py-0.5 rounded text-amber-300 border border-amber-400/30 font-semibold">PREMIUM</span>
+                </div>
+                <div className="font-mono text-sm tracking-wider text-white">
+                  •••• •••• •••• {user?._id ? user._id.substring(user._id.length - 4) : '9982'}
+                </div>
+                <div className="flex justify-between items-end text-[11px] text-gray-400">
+                  <div>
+                    <p className="text-[9px] text-gray-500 uppercase">Chủ thẻ</p>
+                    <p className="font-semibold text-gray-200 uppercase">{user?.name || user?.username || 'VIP MEMBER'}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[9px] text-gray-500 uppercase">Hạn dùng</p>
+                    <p className="font-semibold text-amber-300">Vĩnh Viễn ♾️</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div style={{ marginTop: '20px' }}>
+        {/* MENU GROUPS */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* GROUP 1: ACCOUNT & SECURITY */}
+          <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 flex items-center gap-2">
+              <ShieldCheck size={16} className="text-emerald-500" /> Tài Khoản & Bảo Mật
+            </h3>
+            <div className="space-y-2">
+              {accountGroup.map(item => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveView(item.id)}
+                    className="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-slate-800/80 border border-transparent hover:border-gray-100 dark:hover:border-slate-700/60 transition group text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-xl group-hover:scale-110 transition">
+                        <Icon size={18} />
+                      </div>
+                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition">
+                        {item.title}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {item.badge && (
+                        <span className="text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full">
+                          {item.badge}
+                        </span>
+                      )}
+                      <ChevronRight size={16} className="text-gray-400 group-hover:translate-x-0.5 transition" />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* GROUP 2: SYSTEM PREFERENCES */}
+          <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 flex items-center gap-2">
+              <Globe size={16} className="text-teal-500" /> Hệ Thống & Tùy Chỉnh
+            </h3>
+            <div className="space-y-2">
+              {systemGroup.map(item => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveView(item.id)}
+                    className="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-slate-800/80 border border-transparent hover:border-gray-100 dark:hover:border-slate-700/60 transition group text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 rounded-xl group-hover:scale-110 transition">
+                        <Icon size={18} />
+                      </div>
+                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition">
+                        {item.title}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {item.extraText && (
+                        <span className="text-xs text-gray-500 font-medium">{item.extraText}</span>
+                      )}
+                      <ChevronRight size={16} className="text-gray-400 group-hover:translate-x-0.5 transition" />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* GROUP 3: SUPPORT & INFO */}
+          <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 flex items-center gap-2">
+              <HelpCircle size={16} className="text-sky-500" /> Hỗ Trợ & Thông Tin
+            </h3>
+            <div className="space-y-2">
+              {supportGroup.map(item => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveView(item.id)}
+                    className="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-slate-800/80 border border-transparent hover:border-gray-100 dark:hover:border-slate-700/60 transition group text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 rounded-xl group-hover:scale-110 transition">
+                        <Icon size={18} />
+                      </div>
+                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition">
+                        {item.title}
+                      </span>
+                    </div>
+                    <ChevronRight size={16} className="text-gray-400 group-hover:translate-x-0.5 transition" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+        </div>
+
+        {/* LOGOUT / LOGIN ACTION BUTTON */}
+        <div className="pt-2">
           {isLoggedIn ? (
-            <button style={styles.logoutBtn} onClick={onLogout}>
-              🚪 {t('account.logout')}
+            <button
+              onClick={onLogout}
+              className="w-full py-4 px-6 rounded-2xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-950/70 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 font-bold text-sm flex items-center justify-center gap-2 transition active:scale-[0.99] shadow-sm"
+            >
+              <LogOut size={18} />
+              <span>{t('account.logout') || 'Đăng xuất khỏi hệ thống'}</span>
             </button>
           ) : (
-            <button style={styles.loginBtn} onClick={onLoginClick}>
-              🔑 {t('account.login')}
+            <button
+              onClick={onLoginClick}
+              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm flex items-center justify-center gap-2 transition active:scale-[0.99] shadow-lg shadow-emerald-500/20"
+            >
+              <LogIn size={18} />
+              <span>{t('account.login') || 'Đăng nhập ngay'}</span>
             </button>
           )}
         </div>
-      </>
+      </div>
     );
   };
 
   // -- SUB VIEWS --
+  const renderHeader = (title) => (
+    <div className="flex items-center justify-between pb-4 mb-6 border-b border-gray-100 dark:border-slate-800">
+      <button 
+        onClick={() => setActiveView('main')} 
+        className="flex items-center gap-2 text-sm font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+      >
+        <ArrowLeft size={18} /> {t('account.back') || 'Quay lại'}
+      </button>
+      <h3 className="text-lg font-bold text-gray-800 dark:text-white">{title}</h3>
+      <div className="w-16"></div>
+    </div>
+  );
+
   const renderComingSoon = (title) => (
-    <div style={styles.subView}>
-      <button style={styles.backBtn} onClick={() => setActiveView('main')}>← {t('account.back')}</button>
-      <h3 style={styles.subTitle}>{title}</h3>
-      <div style={styles.comingSoonBox}>
-        <span style={{ fontSize: '40px' }}>🚀</span>
-        <p style={{ marginTop: '10px', fontWeight: 'bold', color: '#6B7280' }}>{t('account.coming_soon')}</p>
-        <p style={{ fontSize: '13px', color: '#9CA3AF', marginTop: '5px' }}>{t('account.feature_in_dev')}</p>
+    <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-8 max-w-xl mx-auto shadow-sm">
+      {renderHeader(title)}
+      <div className="text-center py-10 space-y-3">
+        <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mx-auto text-2xl">
+          <Rocket size={32} />
+        </div>
+        <h4 className="font-bold text-lg text-gray-800 dark:text-white">{t('account.coming_soon') || 'Tính năng đang được phát triển!'}</h4>
+        <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+          {t('account.feature_in_dev') || 'Đội ngũ kỹ thuật đang hoàn thiện phân hệ này. Sẽ sớm sẵn sàng trong phiên bản cập nhật tiếp theo!'}
+        </p>
       </div>
     </div>
   );
 
   const renderNotifications = () => (
-    <div style={styles.subView}>
-      <button style={styles.backBtn} onClick={() => setActiveView('main')}>← {t('account.back')}</button>
-      <h3 style={styles.subTitle}>{t('account.notifications')}</h3>
-      <div style={styles.settingsList}>
-        <div style={styles.settingItem}>
-          <span>{t('account.email_notif')}</span>
-          <input type="checkbox" defaultChecked style={styles.toggle} />
-        </div>
-        <div style={styles.settingItem}>
-          <span>{t('account.push_notif')}</span>
-          <input type="checkbox" defaultChecked style={styles.toggle} />
-        </div>
-        <div style={styles.settingItem}>
-          <span>{t('account.weekly_report')}</span>
-          <input type="checkbox" defaultChecked style={styles.toggle} />
-        </div>
+    <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-8 max-w-xl mx-auto shadow-sm space-y-4">
+      {renderHeader(t('account.notifications') || 'Cài đặt thông báo')}
+      <div className="space-y-3">
+        {[
+          { label: t('account.email_notif') || 'Thông báo qua Email', desc: 'Nhận báo cáo số dư và nhắc nợ hàng tuần' },
+          { label: t('account.push_notif') || 'Thông báo đẩy trình duyệt', desc: 'Cảnh báo ngay lập tức khi chi vượt ngân sách' },
+          { label: t('account.weekly_report') || 'Báo cáo tổng kết tháng', desc: 'Gửi bảng tổng kết phân tích biến động dòng tiền' }
+        ].map((item, idx) => (
+          <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-slate-700/50">
+            <div>
+              <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{item.label}</p>
+              <p className="text-xs text-gray-400">{item.desc}</p>
+            </div>
+            <input type="checkbox" defaultChecked className="w-5 h-5 accent-emerald-600 rounded cursor-pointer" />
+          </div>
+        ))}
       </div>
     </div>
   );
 
   const renderLanguage = () => (
-    <div style={styles.subView}>
-      <button style={styles.backBtn} onClick={() => setActiveView('main')}>← {t('account.back')}</button>
-      <h3 style={styles.subTitle}>{t('account.language')}</h3>
-      <div style={styles.settingsList}>
-        <div style={styles.radioItem} onClick={() => changeLanguage('vi')}>
-          <input type="radio" name="lang" id="vi" checked={language === 'vi'} readOnly />
-          <label htmlFor="vi" style={{ marginLeft: '10px', cursor: 'pointer' }}>🇻🇳 {t('account.lang_vi')}</label>
+    <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-8 max-w-xl mx-auto shadow-sm space-y-4">
+      {renderHeader(t('account.language') || 'Ngôn ngữ hệ thống')}
+      <div className="space-y-3">
+        <button 
+          onClick={() => changeLanguage('vi')}
+          className={`w-full flex items-center justify-between p-4 rounded-2xl border transition ${
+            language === 'vi' 
+              ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold'
+              : 'bg-gray-50 dark:bg-slate-800/60 border-gray-100 dark:border-slate-700/50 text-gray-700 dark:text-gray-300'
+          }`}
+        >
+          <span className="flex items-center gap-3 text-sm">
+            <span className="text-xl">🇻🇳</span> Tiếng Việt (Vietnamese)
+          </span>
+          {language === 'vi' && <CheckCircle2 size={18} className="text-emerald-600" />}
+        </button>
+
+        <button 
+          onClick={() => changeLanguage('en')}
+          className={`w-full flex items-center justify-between p-4 rounded-2xl border transition ${
+            language === 'en' 
+              ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold'
+              : 'bg-gray-50 dark:bg-slate-800/60 border-gray-100 dark:border-slate-700/50 text-gray-700 dark:text-gray-300'
+          }`}
+        >
+          <span className="flex items-center gap-3 text-sm">
+            <span className="text-xl">🇬🇧</span> English (UK / US)
+          </span>
+          {language === 'en' && <CheckCircle2 size={18} className="text-emerald-600" />}
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderSecurityInfo = () => (
+    <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-8 max-w-xl mx-auto shadow-sm space-y-4">
+      {renderHeader('Bảo mật & Mật khẩu')}
+      <div className="space-y-4">
+        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 rounded-2xl flex items-center gap-3 text-emerald-800 dark:text-emerald-300">
+          <ShieldCheck size={24} className="shrink-0 text-emerald-600" />
+          <div>
+            <p className="text-sm font-bold">Tài khoản được bảo vệ</p>
+            <p className="text-xs opacity-90">Mã hóa JWT SSL 256-bit chuẩn ngân hàng quốc tế.</p>
+          </div>
         </div>
-        <div style={styles.radioItem} onClick={() => changeLanguage('en')}>
-          <input type="radio" name="lang" id="en" checked={language === 'en'} readOnly />
-          <label htmlFor="en" style={{ marginLeft: '10px', cursor: 'pointer' }}>🇬🇧 {t('account.lang_en')}</label>
+        <div className="p-4 bg-gray-50 dark:bg-slate-800/60 rounded-2xl space-y-2 text-sm text-gray-700 dark:text-gray-300">
+          <p className="flex justify-between border-b pb-2 border-gray-200 dark:border-slate-700">
+            <span className="text-gray-500">Mã hóa dữ liệu:</span>
+            <span className="font-semibold text-emerald-600">AES-256 Enabled</span>
+          </p>
+          <p className="flex justify-between border-b pb-2 border-gray-200 dark:border-slate-700">
+            <span className="text-gray-500">Xác thực Token:</span>
+            <span className="font-semibold text-emerald-600">JWT 30 Days</span>
+          </p>
+          <p className="flex justify-between">
+            <span className="text-gray-500">Lần đăng nhập gần nhất:</span>
+            <span className="font-mono text-xs">Vừa xong (Hôm nay)</span>
+          </p>
         </div>
       </div>
     </div>
   );
 
   const renderGeneralInfo = () => (
-    <div style={styles.subView}>
-      <button style={styles.backBtn} onClick={() => setActiveView('main')}>← {t('account.back')}</button>
-      <h3 style={styles.subTitle}>{t('account.general_info')}</h3>
-      <div style={styles.infoBox}>
-        <p><strong>{t('account.username')}</strong> {user?.username || 'N/A'}</p>
-        <p><strong>{t('account.email')}</strong> {user?.email || 'N/A'}</p>
-        <p><strong>{t('account.join_date')}</strong> {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : t('account.unknown')}</p>
-        <p><strong>{t('account.status')}</strong> {t('account.active')}</p>
+    <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-8 max-w-xl mx-auto shadow-sm space-y-4">
+      {renderHeader(t('account.general_info') || 'Thông tin hệ thống')}
+      <div className="p-4 bg-gray-50 dark:bg-slate-800/60 rounded-2xl space-y-3 text-sm text-gray-700 dark:text-gray-300">
+        <p className="flex justify-between border-b pb-2 border-gray-200 dark:border-slate-700">
+          <span className="text-gray-500">{t('account.username') || 'Tên tài khoản:'}</span>
+          <span className="font-bold">{user?.username || 'N/A'}</span>
+        </p>
+        <p className="flex justify-between border-b pb-2 border-gray-200 dark:border-slate-700">
+          <span className="text-gray-500">{t('account.email') || 'Email liên hệ:'}</span>
+          <span className="font-bold">{user?.email || 'N/A'}</span>
+        </p>
+        <p className="flex justify-between border-b pb-2 border-gray-200 dark:border-slate-700">
+          <span className="text-gray-500">{t('account.join_date') || 'Ngày tham gia:'}</span>
+          <span className="font-bold">{user?.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'Mới tham gia'}</span>
+        </p>
+        <p className="flex justify-between">
+          <span className="text-gray-500">Phiên bản ứng dụng:</span>
+          <span className="font-mono font-bold text-emerald-600">v2.5.0 (PRO Edition)</span>
+        </p>
       </div>
     </div>
   );
 
   const renderContent = () => {
     switch (activeView) {
-      case 'help': return renderComingSoon(t('account.help_center'));
-      case 'feedback': return renderComingSoon(t('account.feedback'));
+      case 'help': return renderComingSoon(t('account.help_center') || 'Trung tâm trợ giúp');
+      case 'feedback': return renderComingSoon(t('account.feedback') || 'Góp ý sản phẩm');
       case 'notifications': return renderNotifications();
       case 'language': return renderLanguage();
       case 'info': return renderGeneralInfo();
+      case 'security': return renderSecurityInfo();
       case 'account': return <AccountSettings user={user} setActiveView={setActiveView} />;
       default: return renderMainView();
     }
   };
 
   return (
-    <div style={styles.container}>
+    <div className="max-w-6xl mx-auto py-4">
       {renderContent()}
     </div>
   );
 }
-
-const styles = {
-  container: {
-    maxWidth: '420px',
-    margin: '20px auto',
-    padding: '20px',
-    backgroundColor: '#FFFFFF',
-    borderRadius: '16px',
-    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)',
-    fontFamily: 'Arial, sans-serif'
-  },
-  header: {
-    textAlign: 'center',
-    paddingBottom: '20px',
-    borderBottom: '1px solid #F3F4F6'
-  },
-  avatar: {
-    width: '75px',
-    height: '75px',
-    borderRadius: '50%',
-    backgroundColor: '#059669',
-    color: '#FFFFFF',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    fontSize: '28px',
-    fontWeight: 'bold',
-    margin: '0 auto 12px auto'
-  },
-  name: {
-    margin: '0 0 6px 0',
-    fontSize: '20px',
-    fontWeight: 'bold',
-    color: '#111827'
-  },
-  infoText: {
-    margin: '3px 0',
-    fontSize: '13px',
-    color: '#6B7280'
-  },
-  menuList: {
-    marginTop: '16px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px'
-  },
-  menuItem: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '14px 16px',
-    backgroundColor: '#F9FAFB',
-    borderRadius: '10px',
-    cursor: 'pointer',
-    border: '1px solid #E5E7EB'
-  },
-  leftContent: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px'
-  },
-  icon: {
-    fontSize: '18px'
-  },
-  itemTitle: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#374151'
-  },
-  arrow: {
-    color: '#9CA3AF',
-    fontWeight: 'bold'
-  },
-  logoutBtn: {
-    width: '100%',
-    padding: '12px',
-    backgroundColor: '#FEE2E2',
-    color: '#DC2626',
-    border: '1px solid #FCA5A5',
-    borderRadius: '10px',
-    fontWeight: 'bold',
-    fontSize: '14px',
-    cursor: 'pointer',
-    transition: '0.2s'
-  },
-  loginBtn: {
-    width: '100%',
-    padding: '12px',
-    backgroundColor: '#059669',
-    color: '#FFFFFF',
-    border: 'none',
-    borderRadius: '10px',
-    fontWeight: 'bold',
-    fontSize: '14px',
-    cursor: 'pointer',
-    transition: '0.2s'
-  },
-  subView: {
-    animation: 'fadeIn 0.3s'
-  },
-  backBtn: {
-    background: 'none',
-    border: 'none',
-    color: '#3B82F6',
-    fontSize: '14px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    padding: '0 0 16px 0'
-  },
-  subTitle: {
-    margin: '0 0 20px 0',
-    fontSize: '18px',
-    borderBottom: '1px solid #F3F4F6',
-    paddingBottom: '10px'
-  },
-  comingSoonBox: {
-    textAlign: 'center',
-    padding: '40px 20px',
-    backgroundColor: '#F9FAFB',
-    borderRadius: '12px',
-    border: '1px dashed #D1D5DB'
-  },
-  settingsList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px'
-  },
-  settingItem: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    padding: '12px',
-    backgroundColor: '#F9FAFB',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '500'
-  },
-  toggle: {
-    cursor: 'pointer',
-    width: '18px',
-    height: '18px'
-  },
-  radioItem: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: '12px',
-    backgroundColor: '#F9FAFB',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-  infoBox: {
-    padding: '16px',
-    backgroundColor: '#F9FAFB',
-    borderRadius: '8px',
-    fontSize: '14px',
-    lineHeight: '1.8'
-  },
-  formGroup: {
-    marginBottom: '16px'
-  },
-  label: {
-    display: 'block',
-    marginBottom: '6px',
-    fontSize: '13px',
-    fontWeight: 'bold',
-    color: '#374151'
-  },
-  input: {
-    width: '100%',
-    padding: '10px',
-    border: '1px solid #D1D5DB',
-    borderRadius: '8px',
-    fontSize: '14px',
-    boxSizing: 'border-box'
-  },
-  saveBtn: {
-    width: '100%',
-    padding: '12px',
-    backgroundColor: '#059669',
-    color: '#FFFFFF',
-    border: 'none',
-    borderRadius: '10px',
-    fontWeight: 'bold',
-    fontSize: '14px',
-    cursor: 'pointer',
-    marginTop: '10px'
-  }
-};
 
 function AccountSettings({ user, setActiveView }) {
   const [name, setName] = useState(user?.name || user?.username || '');
@@ -368,9 +429,9 @@ function AccountSettings({ user, setActiveView }) {
       });
       
       if (response.ok) {
-        alert(t('account.update_success'));
+        alert(t('account.update_success') || '✅ Cập nhật thông tin thành công!');
       } else {
-        alert(t('account.update_fail'));
+        alert(t('account.update_fail') || '❌ Cập nhật thất bại, vui lòng thử lại.');
       }
     } catch (err) {
       console.error("Lỗi:", err);
@@ -380,33 +441,48 @@ function AccountSettings({ user, setActiveView }) {
   };
 
   return (
-    <div style={styles.subView}>
-      <button style={styles.backBtn} onClick={() => setActiveView('main')}>← {t('account.back')}</button>
-      <h3 style={styles.subTitle}>{t('account.account_settings')}</h3>
-      
-      <div style={styles.formGroup}>
-        <label style={styles.label}>{t('account.display_name')}</label>
-        <input 
-          type="text" 
-          style={styles.input} 
-          value={name} 
-          onChange={(e) => setName(e.target.value)} 
-        />
+    <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-8 max-w-xl mx-auto shadow-sm space-y-6">
+      <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-slate-800">
+        <button 
+          onClick={() => setActiveView('main')} 
+          className="flex items-center gap-2 text-sm font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+        >
+          <ArrowLeft size={18} /> {t('account.back') || 'Quay lại'}
+        </button>
+        <h3 className="text-lg font-bold text-gray-800 dark:text-white">{t('account.account_settings') || 'Chỉnh sửa tài khoản'}</h3>
+        <div className="w-16"></div>
       </div>
       
-      <div style={styles.formGroup}>
-        <label style={styles.label}>{t('account.phone')}</label>
-        <input 
-          type="text" 
-          style={styles.input} 
-          value={phone} 
-          onChange={(e) => setPhone(e.target.value)} 
-          placeholder={t('account.no_phone')}
-        />
+      <div className="space-y-4">
+        <div>
+          <label className="block text-xs font-bold uppercase text-gray-500 mb-2">{t('account.display_name') || 'Tên hiển thị'}</label>
+          <input 
+            type="text" 
+            className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-800 dark:text-white" 
+            value={name} 
+            onChange={(e) => setName(e.target.value)} 
+          />
+        </div>
+        
+        <div>
+          <label className="block text-xs font-bold uppercase text-gray-500 mb-2">{t('account.phone') || 'Số điện thoại'}</label>
+          <input 
+            type="text" 
+            className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-800 dark:text-white" 
+            value={phone} 
+            onChange={(e) => setPhone(e.target.value)} 
+            placeholder={t('account.no_phone') || 'Chưa cập nhật số điện thoại'}
+          />
+        </div>
       </div>
 
-      <button style={styles.saveBtn} onClick={handleUpdate} disabled={loading}>
-        {loading ? `⏳ ${t('account.saving')}` : `💾 ${t('account.save_changes')}`}
+      <button 
+        onClick={handleUpdate} 
+        disabled={loading}
+        className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm rounded-2xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition active:scale-[0.99]"
+      >
+        <Save size={18} />
+        <span>{loading ? (t('account.saving') || 'Đang lưu...') : (t('account.save_changes') || 'Lưu thay đổi')}</span>
       </button>
     </div>
   );

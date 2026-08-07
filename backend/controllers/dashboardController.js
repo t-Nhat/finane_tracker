@@ -83,16 +83,34 @@ const getCategoryDataForChart = async (req, res) => {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ message: 'Chưa xác thực người dùng!' });
 
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    const [year, monthNum] = currentMonth.split('-');
-    const startDate = new Date(year, monthNum - 1, 1);
-    const endDate = new Date(year, monthNum, 0, 23, 59, 59);
+    const type = req.query.type === 'Thu' ? 'Thu' : 'Chi';
+    const now = new Date();
+    const targetYear = req.query.year ? parseInt(req.query.year) : now.getFullYear();
+    const targetMonth = req.query.month ? parseInt(req.query.month) - 1 : now.getMonth();
 
+    const startDate = new Date(targetYear, targetMonth, 1, 0, 0, 0);
+    const endDate = new Date(targetYear, targetMonth + 1, 0, 23, 59, 59);
+
+    // 1. Tính tổng Chi tiêu trong tháng
+    const expenseAgg = await Transaction.aggregate([
+      { $match: { user: userId, type: 'Chi', date: { $gte: startDate, $lte: endDate } } },
+      { $group: { _id: null, total: { $sum: "$amount" } } }
+    ]);
+    const totalExpense = expenseAgg.length > 0 ? expenseAgg[0].total : 0;
+
+    // 2. Tính tổng Thu nhập trong tháng
+    const incomeAgg = await Transaction.aggregate([
+      { $match: { user: userId, type: 'Thu', date: { $gte: startDate, $lte: endDate } } },
+      { $group: { _id: null, total: { $sum: "$amount" } } }
+    ]);
+    const totalIncome = incomeAgg.length > 0 ? incomeAgg[0].total : 0;
+
+    // 3. Gom nhóm theo danh mục đối với loại được chọn ('Chi' hoặc 'Thu')
     const aggregatedData = await Transaction.aggregate([
       { 
         $match: { 
           user: userId, 
-          type: 'Chi', 
+          type: type, 
           date: { $gte: startDate, $lte: endDate } 
         } 
       },
@@ -101,11 +119,20 @@ const getCategoryDataForChart = async (req, res) => {
       { $sort: { amount: -1 } }
     ]);
 
-    // Chuyển đổi dữ liệu sang định dạng mà Chart.js ở frontend cần
     const labels = aggregatedData.map(item => item.category || 'Chưa phân loại');
     const values = aggregatedData.map(item => item.amount);
 
-    res.status(200).json({ success: true, data: { labels, values } });
+    res.status(200).json({ 
+      success: true, 
+      data: { 
+        totalExpense,
+        totalIncome,
+        labels, 
+        values,
+        month: targetMonth + 1,
+        year: targetYear
+      } 
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -116,19 +143,22 @@ const getCashflow14Days = async (req, res) => {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ message: 'Chưa xác thực người dùng!' });
 
-    const fourteenDaysAgo = new Date();
-    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 13);
-    fourteenDaysAgo.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0-indexed (6 = Tháng 7)
+
+    const startDate = new Date(year, month, 1, 0, 0, 0);
+    const daysInMonth = new Date(year, month + 1, 0).getDate(); // Số ngày trong tháng (ví dụ: 31 ngày)
+    const endDate = new Date(year, month + 1, 0, 23, 59, 59);
 
     const transactions = await Transaction.find({
       user: userId,
-      date: { $gte: fourteenDaysAgo }
+      date: { $gte: startDate, $lte: endDate }
     }).sort({ date: 1 });
 
     const dateMap = {};
-    for (let i = 0; i < 14; i++) {
-      const d = new Date(fourteenDaysAgo);
-      d.setDate(d.getDate() + i);
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = new Date(year, month, i);
       const dateStr = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
       dateMap[dateStr] = { date: dateStr, thu: 0, chi: 0 };
     }
@@ -148,85 +178,159 @@ const getCashflow14Days = async (req, res) => {
 };
 
 const getFluctuationData = async (req, res) => {
-    try {
-        const userId = getUserId(req);
-        if (!userId) return res.status(401).json({ message: 'Chưa xác thực người dùng!' });
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: 'Chưa xác thực người dùng!' });
 
-        const { metric = 'chitieu', timeframe = 'thang' } = req.query;
+    const { metric = 'chitieu', timeframe = 'thang' } = req.query;
+    const now = new Date();
 
-        const today = new Date();
-        today.setHours(23, 59, 59, 999);
+    // 1. Lấy tất cả giao dịch thuộc sở hữu của User (không bị lỗi so sánh kiêu Date/String trong MongoDB)
+    const transactions = await Transaction.find({ user: userId });
 
-        let startDate, getPeriodIndex;
-        const labels = [];
-        const currentData = Array(7).fill(0);
-        const previousData = Array(7).fill(0);
+    const labels = [];
+    const currentData = Array(7).fill(0);
+    const previousData = Array(7).fill(0);
 
-        if (timeframe === 'tuan') {
-            startDate = new Date(today);
-            startDate.setDate(today.getDate() - 97); // 14 weeks
-            startDate.setHours(0, 0, 0, 0);
-            
-            const getWeekStart = (d) => {
-                const date = new Date(d);
-                const day = date.getDay();
-                const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-                date.setHours(0,0,0,0);
-                return new Date(date.setDate(diff));
-            };
-            const currentWeekStart = getWeekStart(today);
+    if (timeframe === 'tuan') {
+      // Tính toán 7 tuần kết thúc ở tuần hiện tại
+      for (let i = 6; i >= 0; i--) {
+        if (i === 0) labels.push('Tuần này');
+        else if (i === 1) labels.push('Tuần trước');
+        else labels.push(`${i} tuần trước`);
+      }
 
-            getPeriodIndex = (tDate) => {
-                const transactionWeekStart = getWeekStart(tDate);
-                const diffTime = currentWeekStart - transactionWeekStart;
-                return Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
-            };
+      transactions.forEach(t => {
+        const d = new Date(t.date || t.createdAt);
+        if (isNaN(d.getTime())) return;
 
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date(currentWeekStart);
-                d.setDate(d.getDate() - (i * 7));
-                labels.push(i === 0 ? 'Tuần này' : `W${d.getDate()}/${d.getMonth()+1}`);
-            }
-        } else if (timeframe === 'nam') {
-            startDate = new Date(today.getFullYear() - 13, 0, 1); // 14 years
-            getPeriodIndex = (tDate) => today.getFullYear() - tDate.getFullYear();
-            for (let i = 6; i >= 0; i--) {
-                labels.push(i === 0 ? 'Năm nay' : `${today.getFullYear() - i}`);
-            }
-        } else { // 'thang'
-            startDate = new Date(today.getFullYear(), today.getMonth() - 13, 1); // 14 months
-            getPeriodIndex = (tDate) => (today.getFullYear() - tDate.getFullYear()) * 12 + (today.getMonth() - tDate.getMonth());
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-                labels.push(i === 0 ? 'Kỳ này' : `T${d.getMonth() + 1}`);
-            }
+        const diffTime = Math.abs(now - d);
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const weekIndex = Math.floor(diffDays / 7);
+
+        let amount = Number(t.amount || 0);
+        const tType = (t.type || '').toLowerCase();
+
+        let isMatchCurrent = false;
+        let value = 0;
+
+        if (metric === 'chitieu' && (tType === 'chi' || tType === 'expense')) {
+          isMatchCurrent = true;
+          value = amount;
+        } else if (metric === 'thunhap' && (tType === 'thu' || tType === 'income')) {
+          isMatchCurrent = true;
+          value = amount;
+        } else if (metric === 'chenhlech') {
+          isMatchCurrent = true;
+          value = (tType === 'thu' || tType === 'income') ? amount : -amount;
         }
 
-        const transactionType = metric === 'thunhap' ? 'Thu' : 'Chi';
-        const transactions = await Transaction.find({
-            user: userId,
-            ...(metric !== 'chenhlech' && { type: transactionType }),
-            date: { $gte: startDate, $lte: today }
-        });
+        if (isMatchCurrent) {
+          if (weekIndex >= 0 && weekIndex < 7) {
+            currentData[6 - weekIndex] += value;
+          } else if (weekIndex >= 7 && weekIndex < 14) {
+            previousData[13 - weekIndex] += value;
+          }
+        }
+      });
 
-        transactions.forEach(t => {
-            const periodDiff = getPeriodIndex(new Date(t.date));
-            let value = (metric === 'chenhlech' && t.type === 'Chi') ? -t.amount : t.amount;
+    } else if (timeframe === 'nam') {
+      // 7 năm kết thúc ở năm nay
+      const currentYear = now.getFullYear();
+      for (let i = 6; i >= 0; i--) {
+        labels.push(i === 0 ? 'Năm nay' : `${currentYear - i}`);
+      }
 
-            if (periodDiff >= 0 && periodDiff < 7) {
-                currentData[6 - periodDiff] += value;
-            } else if (periodDiff >= 7 && periodDiff < 14) {
-                previousData[13 - periodDiff] += value;
-            }
-        });
+      transactions.forEach(t => {
+        const d = new Date(t.date || t.createdAt);
+        if (isNaN(d.getTime())) return;
 
-        const totalAmount = currentData.reduce((sum, val) => sum + val, 0);
-        const diffAmount = currentData[6] - currentData[5];
+        const yearDiff = currentYear - d.getFullYear();
+        let amount = Number(t.amount || 0);
+        const tType = (t.type || '').toLowerCase();
 
-        res.status(200).json({ success: true, data: { labels, currentData, previousData, totalAmount, diffAmount } });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        let isMatchCurrent = false;
+        let value = 0;
+
+        if (metric === 'chitieu' && (tType === 'chi' || tType === 'expense')) {
+          isMatchCurrent = true;
+          value = amount;
+        } else if (metric === 'thunhap' && (tType === 'thu' || tType === 'income')) {
+          isMatchCurrent = true;
+          value = amount;
+        } else if (metric === 'chenhlech') {
+          isMatchCurrent = true;
+          value = (tType === 'thu' || tType === 'income') ? amount : -amount;
+        }
+
+        if (isMatchCurrent) {
+          if (yearDiff >= 0 && yearDiff < 7) {
+            currentData[6 - yearDiff] += value;
+          } else if (yearDiff >= 7 && yearDiff < 14) {
+            previousData[13 - yearDiff] += value;
+          }
+        }
+      });
+
+    } else { // 'thang' - 7 tháng gần nhất
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(currentYear, currentMonth - i, 1);
+        labels.push(i === 0 ? 'Tháng này' : `T${d.getMonth() + 1}`);
+      }
+
+      transactions.forEach(t => {
+        const d = new Date(t.date || t.createdAt);
+        if (isNaN(d.getTime())) return;
+
+        const monthDiff = (currentYear - d.getFullYear()) * 12 + (currentMonth - d.getMonth());
+        let amount = Number(t.amount || 0);
+        const tType = (t.type || '').toLowerCase();
+
+        let isMatchCurrent = false;
+        let value = 0;
+
+        if (metric === 'chitieu' && (tType === 'chi' || tType === 'expense')) {
+          isMatchCurrent = true;
+          value = amount;
+        } else if (metric === 'thunhap' && (tType === 'thu' || tType === 'income')) {
+          isMatchCurrent = true;
+          value = amount;
+        } else if (metric === 'chenhlech') {
+          isMatchCurrent = true;
+          value = (tType === 'thu' || tType === 'income') ? amount : -amount;
+        }
+
+        if (isMatchCurrent) {
+          if (monthDiff >= 0 && monthDiff < 7) {
+            currentData[6 - monthDiff] += value;
+          } else if (monthDiff >= 7 && monthDiff < 14) {
+            previousData[13 - monthDiff] += value;
+          }
+        }
+      });
     }
+
+    const totalAmount = currentData[6] || currentData.reduce((sum, v) => sum + v, 0);
+    const prevPeriodAmount = previousData[6] || currentData[5] || 0;
+    const diffAmount = totalAmount - prevPeriodAmount;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        labels,
+        currentData,
+        previousData,
+        totalAmount,
+        diffAmount
+      }
+    });
+  } catch (error) {
+    console.error("Lỗi getFluctuationData:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 module.exports = {

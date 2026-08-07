@@ -4,11 +4,27 @@ export default function NotificationBell() {
   const [alerts, setAlerts] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
 
+  const getToken = () => {
+    const token = localStorage.getItem('token');
+    if (token) return token;
+    const savedUser = localStorage.getItem('mern_finance_user');
+    if (savedUser) {
+      try { return JSON.parse(savedUser).token; } catch (e) { return null; }
+    }
+    return null;
+  };
+
   const fetchAlerts = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/notifications/check');
+      const token = getToken();
+      const res = await fetch('http://localhost:5001/api/notifications/check', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.status === 401) return;
       const json = await res.json();
-      if (json.success) setAlerts(json.data);
+      if (json.success && Array.isArray(json.data)) {
+        setAlerts(json.data);
+      }
     } catch (err) {
       console.error('Lỗi tải thông báo:', err);
     }

@@ -56,6 +56,9 @@ app.use('/api/budget', budgetRoutes);
 app.use('/api/budgets', budgetRoutes);
 app.use('/api/savings-goals', safeImportRoute('./routes/savingsGoalRoutes'));
 app.use('/api/loans', safeImportRoute('./routes/loanRoutes'));
+app.use('/api/backups', safeImportRoute('./routes/backupRoutes'));
+app.use('/api/credit-debts', safeImportRoute('./routes/creditDebtRoutes'));
+app.use('/api/data-transfer', safeImportRoute('./routes/dataTransferRoutes'));
 
 // 5. Kết nối MongoDB Atlas
 const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://doan:doan123456@cluster0.hxzomla.mongodb.net/finance_tracker_db?retryWrites=true&w=majority';

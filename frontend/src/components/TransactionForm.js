@@ -80,6 +80,14 @@ function TransactionForm({ onTransactionAdded }) {
         }
       } else {
         const errData = await response.json();
+        if (response.status === 401 || (errData.message && errData.message.includes('Token'))) {
+          alert("⚠️ Phiên đăng nhập của bạn đã hết hạn. Vui lòng đăng nhập lại!");
+          localStorage.removeItem('token');
+          localStorage.removeItem('mern_finance_user');
+          localStorage.clear();
+          window.location.reload();
+          return;
+        }
         alert(errData.message || "Có lỗi xảy ra khi lưu giao dịch!");
       }
     } catch (error) {

@@ -7,7 +7,7 @@ export default function LoanManager() {
 
   const fetchLoans = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/loans');
+      const res = await fetch('http://localhost:5001/api/loans');
       const json = await res.json();
       if (json.success) setLoans(json.data);
     } catch (err) {
@@ -23,7 +23,7 @@ export default function LoanManager() {
     e.preventDefault();
     if (!formData.personName || !formData.amount) return;
     try {
-      await fetch('http://localhost:5000/api/loans', {
+      await fetch('http://localhost:5001/api/loans', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, type: activeTab, amount: Number(formData.amount) })
@@ -37,7 +37,7 @@ export default function LoanManager() {
 
   const toggleStatus = async (id, currentStatus) => {
     const nextStatus = currentStatus === 'PENDING' ? 'PAID' : 'PENDING';
-    await fetch(`http://localhost:5000/api/loans/${id}/status`, {
+    await fetch(`http://localhost:5001/api/loans/${id}/status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: nextStatus })
@@ -47,7 +47,7 @@ export default function LoanManager() {
 
   const deleteLoan = async (id) => {
     if (!window.confirm('Ông có chắc muốn xóa khoản này?')) return;
-    await fetch(`http://localhost:5000/api/loans/${id}`, { method: 'DELETE' });
+    await fetch(`http://localhost:5001/api/loans/${id}`, { method: 'DELETE' });
     fetchLoans();
   };
 

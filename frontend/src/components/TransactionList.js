@@ -38,21 +38,27 @@ function TransactionList() {
         }
       });
 
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('mern_finance_user');
+        localStorage.clear();
+        window.location.reload();
+        return;
+      }
+
       const data = await response.json();
 
-      // BẢO VỆ CHỐNG SẬP WEB: Đảm bảo data là một mảng thì mới lưu
       if (Array.isArray(data)) {
         setTransactions(data);
       } else if (data.data && Array.isArray(data.data)) {
-        // Trường hợp backend trả về object { success: true, data: [...] }
         setTransactions(data.data);
       } else {
         console.error("Dữ liệu trả về không hợp lệ:", data);
-        setTransactions([]); // Gán bằng mảng rỗng để không bị lỗi .map
+        setTransactions([]);
       }
     } catch (error) {
       console.error("Lỗi lấy dữ liệu:", error);
-      setTransactions([]); // Lỗi mạng cũng gán mảng rỗng
+      setTransactions([]);
     }
   };
 

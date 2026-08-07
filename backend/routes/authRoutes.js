@@ -45,7 +45,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: "Sai tên đăng nhập hoặc mật khẩu!" });
     }
 
-    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1d' });
+    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '30d' });
 
     return res.status(200).json({ 
       message: "Đăng nhập thành công!", 
@@ -100,7 +100,7 @@ router.post('/register', async (req, res) => {
     });
     await newUser.save();
 
-    const token = jwt.sign({ id: newUser._id }, JWT_SECRET, { expiresIn: '1d' });
+    const token = jwt.sign({ id: newUser._id }, JWT_SECRET, { expiresIn: '30d' });
 
     return res.status(201).json({ 
       message: "Đăng ký thành công!",
@@ -161,7 +161,7 @@ router.post('/google', async (req, res) => {
       await user.save();
     }
 
-    const jwtToken = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1d' });
+    const jwtToken = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '30d' });
 
     return res.status(200).json({ 
       message: "Đăng nhập Google thành công!", 
