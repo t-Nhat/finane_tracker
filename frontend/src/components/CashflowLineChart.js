@@ -56,7 +56,7 @@ export default function CashflowLineChart() {
             labels: labels,
             datasets: [
               {
-                label: '📥 Tiền Thu',
+                label: 'Tiền Thu',
                 data: incomeData,
                 borderColor: '#10b981',
                 backgroundColor: 'rgba(16, 185, 129, 0.1)',
@@ -66,7 +66,7 @@ export default function CashflowLineChart() {
                 pointRadius: 3
               },
               {
-                label: '📤 Tiền Chi',
+                label: 'Tiền Chi',
                 data: expenseData,
                 borderColor: '#f43f5e',
                 backgroundColor: 'rgba(244, 63, 94, 0.05)',

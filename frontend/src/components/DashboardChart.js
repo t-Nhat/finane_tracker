@@ -5,8 +5,7 @@ import { useRefresh } from '../context/RefreshContext';
 import { 
   ChevronLeft, 
   ChevronRight, 
-  Calendar, 
-  ChevronRight as ArrowRightIcon
+  Calendar
 } from 'lucide-react';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -211,6 +210,7 @@ const DashboardChart = () => {
               💸
             </span>
             <span>Chi tiêu</span>
+            <span className="text-[10px] text-pink-500 font-bold bg-pink-100 dark:bg-pink-900/40 px-1 rounded">↑</span>
           </div>
           <div className="mt-2 text-lg md:text-xl font-bold text-gray-900 dark:text-white tracking-tight">
             {totalExpense.toLocaleString('vi-VN')}đ
@@ -231,6 +231,7 @@ const DashboardChart = () => {
               📈
             </span>
             <span>Thu nhập</span>
+            <span className="text-[10px] text-emerald-500 font-bold bg-emerald-100 dark:bg-emerald-900/40 px-1 rounded">↑</span>
           </div>
           <div className="mt-2 text-lg md:text-xl font-bold text-gray-900 dark:text-white tracking-tight">
             {totalIncome.toLocaleString('vi-VN')}đ
@@ -239,16 +240,32 @@ const DashboardChart = () => {
 
       </div>
 
-      {/* 3. BANNER THÔNG BÁO 🔥 */}
-      <div className="w-full bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3.5 mb-6 flex items-center gap-3 text-xs leading-relaxed">
+      {/* 3. BANNER CẢNH BÁO / THÔNG BÁO BẮT MẮT 🔥 */}
+      <div className="w-full bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3.5 mb-6 flex items-start gap-3 text-xs leading-relaxed">
         <span className="text-base leading-none">🔥</span>
         <div className="flex-1 text-amber-900 dark:text-amber-300 font-medium">
-          Dữ liệu {activeTab === 'Thu' ? 'thu nhập' : 'chi tiêu'} được cập nhật chính xác theo lịch sử giao dịch.
+          {diffExpense > 0 ? (
+            <>
+              <strong className="font-bold text-orange-600 dark:text-orange-400">
+                Tăng bất thường {diffExpense.toLocaleString('vi-VN')}đ
+              </strong>{' '}
+              so với cùng kỳ tháng trước
+            </>
+          ) : diffExpense < 0 ? (
+            <>
+              <strong className="font-bold text-emerald-600 dark:text-emerald-400">
+                Tiết kiệm được {Math.abs(diffExpense).toLocaleString('vi-VN')}đ
+              </strong>{' '}
+              so với tháng trước
+            </>
+          ) : (
+            <>Dữ liệu chi tiêu được cập nhật chính xác theo lịch sử giao dịch.</>
+          )}
         </div>
-        <ArrowRightIcon className="w-4 h-4 text-amber-500 shrink-0 self-center" />
+        <ChevronRight className="w-4 h-4 text-amber-500 shrink-0 self-center" />
       </div>
 
-      {/* 4. BIỂU ĐỒ TRÒN DOUGHNUT + DANH SÁCH HẠNG MỤC % */}
+      {/* 4. BIỂU ĐỒ TRÒN DOUGHNUT + DANH MỤC XUNG QUANH */}
       {loading ? (
         <div className="flex justify-center items-center h-64 text-gray-400 text-sm">
           ⏳ Đang tải biểu đồ...
@@ -287,7 +304,7 @@ const DashboardChart = () => {
                 }
               }}
             />
-            {/* HIỂN THỊ TỔNG TIỀN Ở GIỮA BÁNH */}
+            {/* TỔNG TIỀN Ở GIỮA BÁNH */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
                 {activeTab === 'Thu' ? 'Tổng Thu' : 'Tổng Chi'}
@@ -298,31 +315,31 @@ const DashboardChart = () => {
             </div>
           </div>
 
-          {/* HẠNG MỤC PHẦN TRĂM % */}
-          <div className="flex-1 w-full flex flex-col gap-2">
+          {/* DANH SÁCH HẠNG MỤC PHÂN BỔ (PERCENTAGE PILLS) */}
+          <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {sortedCategories.map((item, idx) => {
               const itemColor = colors[idx % colors.length];
               return (
                 <div 
                   key={item.name} 
-                  className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 dark:bg-slate-800/60 border border-gray-100 dark:border-slate-800 hover:border-gray-200 dark:hover:border-slate-700 transition-colors"
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 dark:bg-slate-800/60 border border-gray-100 dark:border-slate-800"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex items-center gap-2 overflow-hidden">
                     <span className="text-base shrink-0">{item.icon}</span>
-                    <div className="min-w-0">
+                    <div className="truncate">
                       <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">
                         {item.name}
                       </p>
-                      <p className="text-[10px] text-gray-400 font-medium whitespace-nowrap">
+                      <p className="text-[10px] text-gray-400">
                         {item.amount.toLocaleString('vi-VN')}đ
                       </p>
                     </div>
                   </div>
 
                   <span 
-                    className="px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0 ml-2"
+                    className="px-2 py-1 rounded-full text-[11px] font-bold shrink-0 ml-2"
                     style={{ 
-                      backgroundColor: `${itemColor}18`, 
+                      backgroundColor: `${itemColor}15`, 
                       color: itemColor 
                     }}
                   >

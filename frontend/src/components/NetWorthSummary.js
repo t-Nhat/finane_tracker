@@ -64,15 +64,13 @@ export default function NetWorthSummary() {
       <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold tracking-wider uppercase bg-black/30 text-emerald-300 px-3 py-1 rounded-full border border-emerald-400/30 backdrop-blur-md">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Sức Khỏe Tài Chính
+            <span className="inline-flex items-center gap-1.5 text-xs font-extrabold tracking-wider uppercase bg-black/30 text-emerald-300 px-3.5 py-1.5 rounded-full border border-emerald-400/30 backdrop-blur-md">
+              <ShieldCheck className="w-4 h-4" />
+              TỔNG TÀI SẢN
             </span>
-            <span className="text-xs text-emerald-100/80 font-medium">Thời gian thực</span>
           </div>
 
-          <p className="text-xs font-semibold text-emerald-100 mt-3">TỔNG TÀI SẢN RÒNG (NET WORTH)</p>
-          <h2 className={`text-3xl sm:text-4xl font-mono font-extrabold mt-1 tracking-tight ${isPositive ? 'text-white' : 'text-rose-300'}`}>
+          <h2 className={`text-3xl sm:text-4xl font-mono font-extrabold mt-3 tracking-tight ${isPositive ? 'text-white' : 'text-rose-300'}`}>
             {netWorth.toLocaleString('vi-VN')} đ
           </h2>
         </div>
@@ -82,7 +80,7 @@ export default function NetWorthSummary() {
           className="flex items-center gap-2 bg-white/15 hover:bg-white/25 active:scale-95 text-white font-bold px-5 py-3 rounded-2xl transition text-xs border border-white/20 self-start md:self-center shadow-lg backdrop-blur-md"
         >
           {showDetails ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          <span>{showDetails ? 'Ẩn Phân Rã Dòng Tiền' : 'Xem Phân Rã Dòng Tiền'}</span>
+          <span>{showDetails ? 'Ẩn Chi Tiết' : 'Xem Chi Tiết'}</span>
         </button>
       </div>
 

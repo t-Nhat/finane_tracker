@@ -6,14 +6,7 @@ const app = express();
 
 // 1. Cấu hình CORS mở rộng - Cho phép Frontend kết nối
 app.use(cors({ 
-  origin: [
-    'http://localhost:5173', 
-    'http://127.0.0.1:5173', 
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:3001', // 🟢 THÊM PORT 3001 VÀO DANH SÁCH CHO PHÉP
-    'http://127.0.0.1:3001'
-  ], 
+  origin: true, // Cho phép mọi Origin (localhost, 127.0.0.1, LAN IP) kết nối linh hoạt
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -92,6 +85,6 @@ app.use((err, req, res, next) => {
 
 // 9. Khởi chạy Server ở Port 5001
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server Backend đang chạy tại: http://localhost:${PORT}`);
 });

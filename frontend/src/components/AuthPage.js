@@ -24,13 +24,28 @@ const AuthPage = ({ onLoginSuccess }) => {
         setLoading(true);
         setError('');
         
-        const response = await fetch(`${API_URL}/api/auth/google`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: tokenResponse.access_token }),
-        });
+        let response;
+        try {
+          response = await fetch(`${API_URL}/api/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: tokenResponse.access_token }),
+          });
+        } catch (err) {
+          response = await fetch(`http://127.0.0.1:5001/api/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: tokenResponse.access_token }),
+          });
+        }
         
-        const data = await response.json();
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error(`Máy chủ Backend không thể trả về phản hồi hợp lệ.`);
+        }
         
         if (!response.ok) {
           throw new Error(data.message || 'Lỗi xử lý từ máy chủ');
@@ -38,7 +53,11 @@ const AuthPage = ({ onLoginSuccess }) => {
         
         onLoginSuccess(data);
       } catch (err) {
-        setError(err.message || 'Không thể kết nối đến máy chủ. Vui lòng thử lại.');
+        if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+          setError('Không thể kết nối đến máy chủ Backend (http://localhost:5001). Vui lòng kiểm tra Server Backend đã khởi động chưa!');
+        } else {
+          setError(err.message || 'Đã xảy ra lỗi không xác định.');
+        }
         localStorage.removeItem('mern_finance_user'); 
       } finally {
         setLoading(false);
@@ -55,22 +74,42 @@ const AuthPage = ({ onLoginSuccess }) => {
     setLoading(true);
     setError('');
 
-    const endpoint = view === 'login' ? `${API_URL}/api/auth/login` : `${API_URL}/api/auth/register`;
+    const path = view === 'login' ? '/api/auth/login' : '/api/auth/register';
 
     try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+      let response;
+      try {
+        response = await fetch(`${API_URL}${path}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+      } catch (networkErr) {
+        // Tự động thử lại với 127.0.0.1 nếu localhost gặp sự cố phân giải tên miền
+        response = await fetch(`http://127.0.0.1:5001${path}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+      }
 
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error('Không thể đọc dữ liệu phản hồi từ máy chủ Backend.');
+      }
 
-      if (!response.ok) throw new Error(data.message || 'Sai thông tin đăng nhập');
+      if (!response.ok) throw new Error(data.message || 'Sai thông tin đăng nhập hoặc mật khẩu!');
 
       onLoginSuccess(data);
     } catch (err) {
-      setError(err.message || 'Không thể kết nối đến máy chủ. Vui lòng thử lại.');
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+        setError('Không thể kết nối đến máy chủ Backend (http://localhost:5001). Vui lòng kiểm tra Server Backend đã được chạy chưa!');
+      } else {
+        setError(err.message || 'Đã xảy ra lỗi khi kết nối.');
+      }
     } finally {
       setLoading(false);
     }
@@ -103,7 +142,7 @@ const AuthPage = ({ onLoginSuccess }) => {
               <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
                 <DollarSign className="w-5 h-5" />
               </div>
-              <span className="text-xl font-bold tracking-tight text-white">Finance Tracker</span>
+              <span className="text-xl font-bold tracking-tight text-white">Quản Lý Chi Tiêu</span>
             </div>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium mb-6">
               <ShieldCheck className="w-3.5 h-3.5" />
@@ -117,7 +156,7 @@ const AuthPage = ({ onLoginSuccess }) => {
             </p>
           </div>
           <div className="mt-12 pt-6 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-500">
-            <span>© 2026 Finance Tracker v2.0</span>
+            <span>© 2026 Quản Lý Chi Tiêu v2.0</span>
             <span>Bảo mật AES-256</span>
           </div>
         </div>

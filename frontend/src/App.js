@@ -112,10 +112,9 @@ function App() {
               </div>
               <div>
                 <h1 className="text-base font-extrabold tracking-tight text-white flex items-center gap-1.5">
-                  FINANCE TRACKER
+                  QUẢN LÝ CHI TIÊU
                   <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
                 </h1>
-                <p className="text-[11px] font-medium text-emerald-400/90 tracking-wide">Quản Lý Chi Tiêu Số</p>
               </div>
             </div>
           </div>
@@ -254,7 +253,6 @@ function App() {
           </div>
 
           <div className="flex items-center gap-3 self-end sm:self-auto">
-            <ThemeToggle themeMode={themeMode} setThemeMode={setThemeMode} />
             <NotificationBell />
           </div>
         </header>

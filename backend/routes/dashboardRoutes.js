@@ -33,11 +33,32 @@ router.get('/cashflow-14days', getCashflow14Days);
 // API cho biểu đồ tròn (Pie Chart) - gom nhóm theo danh mục
 router.get('/chart-data', getCategoryDataForChart);
 
-// API cho biểu đồ tròn - hỗ trợ lọc ?type=Thu hoặc ?type=Chi
+// 2. API cho Ngân sách & Biểu đồ (hỗ trợ fallback)
+router.get('/budgets', async (req, res) => {
+  try {
+    const db = mongoose.connection;
+    const budgets = await db.collection('budgets').find(buildQuery(getValidUserId(req))).toArray();
+    return res.status(200).json({ success: true, budgets, data: budgets });
+  } catch (error) {
+    return res.status(500).json({ success: false, budgets: [] });
+  }
+});
+
+router.get('/charts', async (req, res) => {
+  try {
+    const db = mongoose.connection;
+    const transactions = await db.collection('transactions').find(buildQuery(getValidUserId(req))).toArray();
+    return res.status(200).json({ success: true, transactions, data: transactions });
+  } catch (error) {
+    return res.status(500).json({ success: false, transactions: [] });
+  }
+});
+
+// 3. API cho biểu đồ tròn (Pie Chart) - gom nhóm theo danh mục Thu hoặc Chi
 router.get('/category-data', async (req, res) => {
   try {
     const userObjId = getValidUserId(req);
-    const filterType = req.query.type || 'Chi';
+    const filterType = req.query.type || 'Chi'; // Mặc định 'Chi'
     const db = mongoose.connection;
     const transactions = await db.collection('transactions').find(buildQuery(userObjId)).toArray();
     
