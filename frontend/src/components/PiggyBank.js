@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PiggyBank as PiggyIcon, Plus, Minus, Trash2, Calendar, Target, Sparkles, CheckCircle2 } from 'lucide-react';
+import { PiggyBank as PiggyIcon, Plus, Minus, Trash2, Calendar, Target, Sparkles, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { useRefresh } from '../context/RefreshContext';
 
 const API_BASE = 'http://localhost:5001/api/savings-goals';
@@ -19,6 +19,9 @@ export default function PiggyBank() {
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ goalName: '', targetAmount: '', deadline: '' });
+  const [actionModal, setActionModal] = useState({ show: false, type: 'deposit', goal: null, amount: '' });
+  const [toastModal, setToastModal] = useState({ show: false, type: 'success', title: '', message: '' });
+  const [deleteModal, setDeleteModal] = useState({ show: false, id: null, currentAmount: 0, goalName: '' });
 
   const fetchGoals = async () => {
     try {
@@ -55,18 +58,27 @@ export default function PiggyBank() {
         body: JSON.stringify({ ...form, targetAmount: Number(form.targetAmount) })
       });
       setForm({ goalName: '', targetAmount: '', deadline: '' });
+      setToastModal({ show: true, type: 'success', title: 'Tạo heo thành công 🐷', message: 'Mục tiêu tiết kiệm mới đã được thiết lập.' });
       fetchGoals();
     } catch (err) {
-      alert('Lỗi tạo mục tiêu: ' + err.message);
+      setToastModal({ show: true, type: 'error', title: 'Lỗi tạo mục tiêu', message: err.message });
     }
   };
 
-  const handleDeposit = async (id) => {
-    const amount = prompt('Nhập số tiền muốn nạp vào heo (VNĐ):', '100000');
-    if (!amount || isNaN(amount) || Number(amount) <= 0) return;
+  const openActionModal = (goal, type) => {
+    setActionModal({ show: true, type, goal, amount: '' });
+  };
+
+  const executeAction = async () => {
+    const { type, goal, amount } = actionModal;
+    if (!amount || isNaN(amount) || Number(amount) <= 0) {
+      setToastModal({ show: true, type: 'error', title: 'Số tiền không hợp lệ', message: 'Vui lòng nhập số tiền lớn hơn 0 đ.' });
+      return;
+    }
     try {
       const token = getToken();
-      const res = await fetch(`${API_BASE}/${id}/deposit`, {
+      const endpoint = type === 'deposit' ? 'deposit' : 'withdraw';
+      const res = await fetch(`${API_BASE}/${goal._id}/${endpoint}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -76,62 +88,56 @@ export default function PiggyBank() {
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
-        alert(json.message || 'Lỗi nạp tiền vào heo!');
+        setActionModal({ show: false, type: 'deposit', goal: null, amount: '' });
+        setToastModal({ show: true, type: 'error', title: type === 'deposit' ? 'Lỗi nạp tiền' : 'Lỗi rút tiền', message: json.message || 'Thao tác không thành công!' });
         return;
       }
+      setActionModal({ show: false, type: 'deposit', goal: null, amount: '' });
+      setToastModal({ 
+        show: true, 
+        type: 'success', 
+        title: type === 'deposit' ? 'Nạp tiền thành công 🐷' : 'Rút tiền thành công 💸', 
+        message: type === 'deposit' 
+          ? `Đã nạp ${Number(amount).toLocaleString('vi-VN')} đ vào heo "${goal.goalName}".` 
+          : `Đã rút ${Number(amount).toLocaleString('vi-VN')} đ từ heo "${goal.goalName}".`
+      });
       fetchGoals();
       triggerRefresh();
     } catch (err) {
-      alert('Lỗi nạp tiền: ' + err.message);
+      setActionModal({ show: false, type: 'deposit', goal: null, amount: '' });
+      setToastModal({ show: true, type: 'error', title: 'Lỗi kết nối', message: err.message });
     }
   };
 
-  const handleWithdraw = async (id) => {
-    const amount = prompt('Nhập số tiền muốn rút từ heo (VNĐ):', '100000');
-    if (!amount || isNaN(amount) || Number(amount) <= 0) return;
+  const openDeleteModal = (goal) => {
+    setDeleteModal({ show: true, id: goal._id, currentAmount: goal.currentAmount || 0, goalName: goal.goalName });
+  };
+
+  const executeDeleteGoal = async () => {
+    const { id } = deleteModal;
     try {
       const token = getToken();
-      const res = await fetch(`${API_BASE}/${id}/withdraw`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ amount: Number(amount) })
+      const res = await fetch(`${API_BASE}/${id}`, { 
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       const json = await res.json();
-      if (!res.ok || !json.success) {
-        alert(json.message || 'Lỗi rút tiền từ heo!');
-        return;
-      }
-      fetchGoals();
-      triggerRefresh();
-    } catch (err) {
-      alert('Lỗi rút tiền: ' + err.message);
-    }
-  };
-
-  const deleteGoal = async (id, currentAmount = 0) => {
-    const confirmMsg = currentAmount > 0 
-      ? `Bạn có chắc muốn xóa mục tiêu này? Số tiền ${currentAmount.toLocaleString('vi-VN')}đ tích lũy trong heo sẽ được hoàn tự động về tài khoản ví của bạn.`
-      : 'Bạn có chắc muốn xóa mục tiêu tiết kiệm này?';
-
-    if (window.confirm(confirmMsg)) {
-      try {
-        const token = getToken();
-        const res = await fetch(`${API_BASE}/${id}`, { 
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
+      setDeleteModal({ show: false, id: null, currentAmount: 0, goalName: '' });
+      if (json.success) {
+        setToastModal({ 
+          show: true, 
+          type: 'success', 
+          title: 'Xóa heo thành công 🎉', 
+          message: json.message || 'Mục tiêu đã được xóa khỏi danh sách.' 
         });
-        const json = await res.json();
-        if (json.success && json.message) {
-          alert(json.message);
-        }
-        fetchGoals();
-        triggerRefresh();
-      } catch (err) {
-        alert('Lỗi xóa mục tiêu: ' + err.message);
+      } else {
+        setToastModal({ show: true, type: 'error', title: 'Lỗi xóa', message: json.message || 'Không thể xóa mục tiêu' });
       }
+      fetchGoals();
+      triggerRefresh();
+    } catch (err) {
+      setDeleteModal({ show: false, id: null, currentAmount: 0, goalName: '' });
+      setToastModal({ show: true, type: 'error', title: 'Lỗi xóa mục tiêu', message: err.message });
     }
   };
 
@@ -224,7 +230,7 @@ export default function PiggyBank() {
                       🐷
                     </div>
                     <button 
-                      onClick={() => deleteGoal(goal._id, current)} 
+                      onClick={() => openDeleteModal(goal)} 
                       className={`p-2 rounded-xl transition ${isDone ? 'text-white/70 hover:text-white hover:bg-white/20' : 'text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40'}`}
                       title="Xóa mục tiêu"
                     >
@@ -270,7 +276,7 @@ export default function PiggyBank() {
                       </div>
                       {current > 0 && (
                         <button 
-                          onClick={() => handleWithdraw(goal._id)} 
+                          onClick={() => openActionModal(goal, 'withdraw')} 
                           className="w-full flex items-center justify-center gap-1.5 font-bold bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-500 hover:text-white text-amber-600 dark:text-amber-400 py-2.5 rounded-2xl transition duration-200 text-xs shadow-sm active:scale-95 border border-amber-200/60 dark:border-amber-800/60"
                         >
                           <Minus className="w-4 h-4" />
@@ -281,14 +287,14 @@ export default function PiggyBank() {
                   ) : (
                     <div className="grid grid-cols-2 gap-2">
                       <button 
-                        onClick={() => handleDeposit(goal._id)} 
+                        onClick={() => openActionModal(goal, 'deposit')} 
                         className="flex items-center justify-center gap-1 font-bold bg-pink-50 dark:bg-pink-950/40 hover:bg-pink-500 hover:text-white text-pink-600 dark:text-pink-400 py-2.5 rounded-2xl transition duration-200 text-xs shadow-sm active:scale-95 border border-pink-200/60 dark:border-pink-800/60"
                       >
                         <Plus className="w-4 h-4" />
                         <span>Nạp Tiền</span>
                       </button>
                       <button 
-                        onClick={() => handleWithdraw(goal._id)} 
+                        onClick={() => openActionModal(goal, 'withdraw')} 
                         disabled={current <= 0}
                         className={`flex items-center justify-center gap-1 font-bold py-2.5 rounded-2xl transition duration-200 text-xs shadow-sm border ${
                           current > 0 
@@ -305,6 +311,150 @@ export default function PiggyBank() {
               </div>
             );
           })}
+        </div>
+      )}
+      {/* MODAL NẠP / RÚT TIỀN HEO */}
+      {actionModal.show && actionModal.goal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-200/50 dark:border-slate-800 relative">
+            <button 
+              onClick={() => setActionModal({ show: false, type: 'deposit', goal: null, amount: '' })}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-full"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 text-pink-500 mb-4">
+              <div className="w-10 h-10 rounded-2xl bg-pink-100 dark:bg-pink-950/80 flex items-center justify-center text-xl">
+                {actionModal.type === 'deposit' ? '🐷' : '💸'}
+              </div>
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                  {actionModal.type === 'deposit' ? 'Nạp Tiền Vào Heo' : 'Rút Tiền Từ Heo'}
+                </h3>
+                <p className="text-xs text-slate-400">{actionModal.goal.goalName}</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 mb-5 flex justify-between items-center">
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">Hiện có trong heo:</span>
+              <span className="font-mono font-extrabold text-pink-600 dark:text-pink-400 text-base">
+                {(actionModal.goal.currentAmount || 0).toLocaleString('vi-VN')} đ
+              </span>
+            </div>
+
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+              Nhập số tiền muốn {actionModal.type === 'deposit' ? 'nạp' : 'rút'} (VNĐ):
+            </label>
+            <input 
+              type="number"
+              placeholder="VD: 100000"
+              value={actionModal.amount}
+              onChange={e => setActionModal({ ...actionModal, amount: e.target.value })}
+              className="w-full p-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500/40 mb-4"
+              autoFocus
+            />
+
+            {/* Quick chips */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {[50000, 100000, 500000, 1000000].map((val, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setActionModal({ ...actionModal, amount: val })}
+                  className="text-xs font-bold font-mono px-3 py-1.5 rounded-xl bg-pink-50 dark:bg-pink-950/50 text-pink-600 dark:text-pink-400 border border-pink-200/50 dark:border-pink-800/50 hover:bg-pink-500 hover:text-white transition"
+                >
+                  +{(val / 1000).toLocaleString('vi-VN')}k
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setActionModal({ show: false, type: 'deposit', goal: null, amount: '' })}
+                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition text-xs"
+              >
+                Hủy
+              </button>
+              <button 
+                onClick={executeAction}
+                className={`flex-1 py-3 text-white rounded-xl font-bold transition text-xs shadow-lg active:scale-95 ${
+                  actionModal.type === 'deposit'
+                    ? 'bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 shadow-pink-500/20'
+                    : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-amber-500/20'
+                }`}
+              >
+                Xác Nhận {actionModal.type === 'deposit' ? 'Nạp' : 'Rút'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL XÁC NHẬN XÓA HEO */}
+      {deleteModal.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-200/50 dark:border-slate-800">
+            <div className="flex items-center gap-3 text-rose-500 mb-4">
+              <AlertCircle className="w-8 h-8" />
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Xóa Mục Tiêu Tiết Kiệm</h3>
+            </div>
+
+            <p className="text-slate-600 dark:text-slate-300 mb-6 text-sm leading-relaxed">
+              {deleteModal.currentAmount > 0 ? (
+                <>
+                  Bạn có chắc muốn xóa chú heo <strong>"{deleteModal.goalName}"</strong>? Số tiền <strong className="text-emerald-500">{(deleteModal.currentAmount).toLocaleString('vi-VN')} đ</strong> đang tích lũy sẽ được <strong>hoàn tự động về tài khoản Ví</strong> của bạn.
+                </>
+              ) : (
+                <>Bạn có chắc chắn muốn xóa chú heo <strong>"{deleteModal.goalName}"</strong> khỏi danh sách?</>
+              )}
+            </p>
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setDeleteModal({ show: false, id: null, currentAmount: 0, goalName: '' })}
+                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition text-xs"
+              >
+                Hủy
+              </button>
+              <button 
+                onClick={executeDeleteGoal}
+                className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition text-xs shadow-lg shadow-rose-500/20 active:scale-95"
+              >
+                Xóa Mục Tiêu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL THÔNG BÁO POPUP (SUCCESS / ERROR TOAST) */}
+      {toastModal.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 max-w-sm w-full shadow-2xl border border-slate-200/50 dark:border-slate-800 text-center relative">
+            <div className={`w-14 h-14 rounded-full mx-auto flex items-center justify-center mb-4 ${
+              toastModal.type === 'success' ? 'bg-pink-100 text-pink-500 dark:bg-pink-950/80' : 'bg-rose-100 text-rose-500 dark:bg-rose-950/80'
+            }`}>
+              {toastModal.type === 'success' ? <CheckCircle2 className="w-8 h-8 text-pink-500" /> : <AlertCircle className="w-8 h-8" />}
+            </div>
+
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white mb-2">
+              {toastModal.title}
+            </h3>
+            
+            <p className="text-xs text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
+              {toastModal.message}
+            </p>
+
+            <button 
+              onClick={() => setToastModal({ show: false, type: 'success', title: '', message: '' })}
+              className={`w-full py-3 rounded-2xl font-bold text-white transition text-xs shadow-md ${
+                toastModal.type === 'success' ? 'bg-pink-500 hover:bg-pink-600' : 'bg-rose-600 hover:bg-rose-700'
+              }`}
+            >
+              Đồng ý
+            </button>
+          </div>
         </div>
       )}
     </div>

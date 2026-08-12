@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Building2, Calendar, DollarSign, Trash2, Plus, AlertCircle, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { CreditCard, Building2, Calendar, DollarSign, Trash2, Plus, AlertCircle, CheckCircle2, ShieldAlert, X, Info } from 'lucide-react';
 
 const API_BASE = 'http://localhost:5001/api/credit-debts';
 
@@ -17,6 +17,9 @@ export default function CreditDebtManager() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: '', type: 'CREDIT_CARD', limitAmount: '', currentDebt: '', dueDateDay: '15' });
+  const [deleteModal, setDeleteModal] = useState({ show: false, item: null });
+  const [payModal, setPayModal] = useState({ show: false, item: null, amount: '' });
+  const [toastModal, setToastModal] = useState({ show: false, type: 'success', title: '', message: '' });
 
   const fetchItems = async () => {
     try {
@@ -57,49 +60,77 @@ export default function CreditDebtManager() {
         })
       });
       setForm({ name: '', type: 'CREDIT_CARD', limitAmount: '', currentDebt: '', dueDateDay: '15' });
+      setToastModal({ show: true, type: 'success', title: 'Tạo thành công 🎉', message: 'Đã thêm khoản nợ/thẻ mới vào hệ thống.' });
       fetchItems();
     } catch (err) {
-      alert('Lỗi thêm khoản vay/thẻ: ' + err.message);
+      setToastModal({ show: true, type: 'error', title: 'Lỗi thêm khoản vay/thẻ', message: err.message });
     }
   };
 
-  const handlePay = async (id) => {
-    const amount = prompt('Nhập số tiền bạn vừa thanh toán/trả nợ (VNĐ):');
-    if (!amount || isNaN(amount) || Number(amount) <= 0) return;
+  const openPayModal = (item) => {
+    setPayModal({ show: true, item, amount: '' });
+  };
+
+  const executePay = async () => {
+    if (!payModal.amount || isNaN(payModal.amount) || Number(payModal.amount) <= 0) {
+      setToastModal({ show: true, type: 'error', title: 'Số tiền không hợp lệ', message: 'Vui lòng nhập số tiền thanh toán lớn hơn 0 đ.' });
+      return;
+    }
     try {
       const token = getToken();
-      const res = await fetch(`${API_BASE}/${id}/pay`, {
+      const res = await fetch(`${API_BASE}/${payModal.item._id}/pay`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ payAmount: Number(amount) })
+        body: JSON.stringify({ payAmount: Number(payModal.amount) })
       });
       const data = await res.json();
       if (!data.success) {
-        alert(data.message || 'Lỗi trả nợ');
+        setPayModal({ show: false, item: null, amount: '' });
+        setToastModal({ show: true, type: 'error', title: 'Thanh toán thất bại', message: data.message || 'Lỗi trả nợ' });
         return;
       }
-      alert('Thanh toán thành công!');
+      setPayModal({ show: false, item: null, amount: '' });
+      setToastModal({ 
+        show: true, 
+        type: 'success', 
+        title: 'Thanh toán thành công 🎉', 
+        message: `Đã trả ${Number(payModal.amount).toLocaleString('vi-VN')} đ cho ${payModal.item.name}. Dư nợ đã được giảm!` 
+      });
       fetchItems();
     } catch (err) {
-      alert('Lỗi trả nợ: ' + err.message);
+      setPayModal({ show: false, item: null, amount: '' });
+      setToastModal({ show: true, type: 'error', title: 'Lỗi hệ thống', message: err.message });
     }
   };
 
-  const deleteItem = async (id) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa thẻ/khoản vay này?')) {
-      try {
-        const token = getToken();
-        await fetch(`${API_BASE}/${id}`, { 
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        fetchItems();
-      } catch (err) {
-        alert('Lỗi xóa: ' + err.message);
+  const deleteItem = async (id, action = 'direct') => {
+    try {
+      const token = getToken();
+      const res = await fetch(`${API_BASE}/${id}?action=${action}`, { 
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setToastModal({ show: true, type: 'error', title: 'Lỗi xóa', message: data.message });
+        return;
       }
+      setDeleteModal({ show: false, item: null });
+      setToastModal({ show: true, type: 'success', title: 'Xóa thành công 🎉', message: 'Đã xóa bản ghi khỏi danh sách.' });
+      fetchItems();
+    } catch (err) {
+      setToastModal({ show: true, type: 'error', title: 'Lỗi xóa', message: err.message });
+    }
+  };
+
+  const handleDeleteClick = (item) => {
+    if ((item.currentDebt || 0) === 0) {
+      deleteItem(item._id, 'direct');
+    } else {
+      setDeleteModal({ show: true, item });
     }
   };
 
@@ -203,7 +234,7 @@ export default function CreditDebtManager() {
                     </div>
 
                     <button 
-                      onClick={() => deleteItem(item._id)} 
+                      onClick={() => handleDeleteClick(item)} 
                       className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
                       title="Xóa bản ghi"
                     >
@@ -249,7 +280,7 @@ export default function CreditDebtManager() {
                   </div>
 
                   <button 
-                    onClick={() => handlePay(item._id)} 
+                    onClick={() => openPayModal(item)} 
                     className="flex items-center gap-1.5 text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-600 text-emerald-700 dark:text-emerald-400 hover:text-white dark:hover:text-white px-4 py-2.5 rounded-xl transition active:scale-95 border border-emerald-200/60 dark:border-emerald-800/60 self-end sm:self-auto"
                   >
                     <DollarSign className="w-4 h-4" />
@@ -259,6 +290,156 @@ export default function CreditDebtManager() {
               </div>
             );
           })}
+        </div>
+      )}
+      {/* MODAL NHẬP TIỀN THANH TOÁN */}
+      {payModal.show && payModal.item && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-200/50 dark:border-slate-800 relative">
+            <button 
+              onClick={() => setPayModal({ show: false, item: null, amount: '' })}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-full"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 text-purple-600 dark:text-purple-400 mb-4">
+              <div className="w-10 h-10 rounded-2xl bg-purple-100 dark:bg-purple-950/80 flex items-center justify-center">
+                <DollarSign className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">Thanh Toán Nợ</h3>
+                <p className="text-xs text-slate-400">{payModal.item.name}</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 mb-5 flex justify-between items-center">
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">Dư nợ cần trả:</span>
+              <span className="font-mono font-extrabold text-rose-600 dark:text-rose-400 text-base">
+                {(payModal.item.currentDebt || 0).toLocaleString('vi-VN')} đ
+              </span>
+            </div>
+
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+              Nhập số tiền muốn trả (VNĐ):
+            </label>
+            <input 
+              type="number"
+              placeholder="VD: 500000"
+              value={payModal.amount}
+              onChange={e => setPayModal({ ...payModal, amount: e.target.value })}
+              className="w-full p-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/40 mb-4"
+              autoFocus
+            />
+
+            {/* Quick chips */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {[100000, 500000, 1000000, payModal.item.currentDebt || 0].map((val, idx) => (
+                val > 0 && (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setPayModal({ ...payModal, amount: val })}
+                    className="text-xs font-bold font-mono px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 border border-purple-200/50 dark:border-purple-800/50 hover:bg-purple-600 hover:text-white transition"
+                  >
+                    {idx === 3 ? 'Trả hết' : `${(val / 1000).toLocaleString('vi-VN')}k`}
+                  </button>
+                )
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setPayModal({ show: false, item: null, amount: '' })}
+                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition text-xs"
+              >
+                Hủy
+              </button>
+              <button 
+                onClick={executePay}
+                className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-bold transition text-xs shadow-lg shadow-purple-500/20 active:scale-95"
+              >
+                Xác Nhận Trả
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL XÓA */}
+      {deleteModal.show && deleteModal.item && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-200/50 dark:border-slate-800 animate-fadeIn">
+            <div className="flex items-center gap-3 text-rose-500 mb-4">
+              <AlertCircle className="w-8 h-8" />
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Thẻ vẫn còn dư nợ!</h3>
+            </div>
+            
+            <p className="text-slate-600 dark:text-slate-300 mb-6 text-sm">
+              Thẻ/khoản vay <strong>{deleteModal.item.name}</strong> vẫn còn dư nợ <strong className="text-rose-500">{(deleteModal.item.currentDebt || 0).toLocaleString('vi-VN')} đ</strong>. Bạn muốn xử lý thế nào?
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => deleteItem(deleteModal.item._id, 'payoff')}
+                className="w-full py-3.5 px-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold flex items-center justify-between transition text-xs sm:text-sm"
+              >
+                <div className="flex flex-col items-start">
+                  <span>Tất toán & Xóa</span>
+                  <span className="text-[11px] opacity-80 font-normal">Trừ tiền trong Ví & tạo giao dịch Chi</span>
+                </div>
+                <CheckCircle2 className="w-5 h-5" />
+              </button>
+
+              <button 
+                onClick={() => deleteItem(deleteModal.item._id, 'ignore')}
+                className="w-full py-3.5 px-4 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold flex items-center justify-between transition text-xs sm:text-sm"
+              >
+                <div className="flex flex-col items-start">
+                  <span>Xóa sổ (Bỏ qua nợ)</span>
+                  <span className="text-[11px] opacity-80 font-normal">Không trừ tiền trong Ví, chỉ xóa thẻ</span>
+                </div>
+                <Trash2 className="w-5 h-5" />
+              </button>
+
+              <button 
+                onClick={() => setDeleteModal({ show: false, item: null })}
+                className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition mt-2 text-xs"
+              >
+                Hủy bỏ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL THÔNG BÁO POPUP (SUCCESS / ERROR TOAST) */}
+      {toastModal.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 max-w-sm w-full shadow-2xl border border-slate-200/50 dark:border-slate-800 text-center relative">
+            <div className={`w-14 h-14 rounded-full mx-auto flex items-center justify-center mb-4 ${
+              toastModal.type === 'success' ? 'bg-emerald-100 text-emerald-500 dark:bg-emerald-950/80' : 'bg-rose-100 text-rose-500 dark:bg-rose-950/80'
+            }`}>
+              {toastModal.type === 'success' ? <CheckCircle2 className="w-8 h-8" /> : <AlertCircle className="w-8 h-8" />}
+            </div>
+
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white mb-2">
+              {toastModal.title}
+            </h3>
+            
+            <p className="text-xs text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
+              {toastModal.message}
+            </p>
+
+            <button 
+              onClick={() => setToastModal({ show: false, type: 'success', title: '', message: '' })}
+              className={`w-full py-3 rounded-2xl font-bold text-white transition text-xs shadow-md ${
+                toastModal.type === 'success' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'
+              }`}
+            >
+              Đồng ý
+            </button>
+          </div>
         </div>
       )}
     </div>
