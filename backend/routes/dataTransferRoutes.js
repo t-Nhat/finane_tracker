@@ -1,37 +1,80 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
+const protect = require('../middleware/authMiddleware');
 
-// Nhúng các model cần thiết để đóng gói dữ liệu
-const Transaction = require('../models/transactionModel');
-const Budget = require('../models/budgetModel');
+// Models dùng cho Export
+const Transaction = require('../models/Transaction');
+const Budget = require('../models/Budget');
 const Loan = require('../models/loanModel');
 const CreditDebt = require('../models/creditDebtModel');
 const SavingsGoal = require('../models/savingsGoalModel');
 
-// 1. API Xuất toàn bộ dữ liệu ra JSON
-router.get('/export', async (req, res) => {
-  try {
-    const transactions = await Transaction.find();
-    const budgets = await Budget.find();
-    const loans = await Loan.find();
-    const creditDebts = await CreditDebt.find();
-    const savingsGoals = await SavingsGoal.find();
+// ─── HELPER: Lấy native MongoDB collection (bypass Mongoose validation) ────────
+const getCol = (name) => mongoose.connection.collection(name);
 
-    const exportBundle = {
-      exportDate: new Date().toISOString(),
-      version: '2.0',
-      data: {
-        transactions,
-        budgets,
-        loans,
-        creditDebts,
-        savingsGoals
-      }
-    };
+// Safe ObjectId Helper
+const toObjectId = (idStr) => {
+  if (!idStr) return null;
+  try {
+    return new mongoose.Types.ObjectId(idStr);
+  } catch (e) {
+    return null;
+  }
+};
+
+// ─── HELPER: Chuẩn hóa dữ liệu + Gắn User ID của người đang đăng nhập ──────────
+const prepareDocs = (arr, userIdObj) => {
+  if (!Array.isArray(arr) || arr.length === 0) return [];
+  return arr.map(doc => {
+    const { _id, __v, ...rest } = doc;
+    
+    // Gắn user ID của người dùng hiện tại để query tìm thấy được
+    if (userIdObj) {
+      rest.user = userIdObj;
+    }
+
+    // Chuẩn hóa Budget nếu thiếu amount hoặc limitAmount
+    if (rest.limitAmount !== undefined && rest.amount === undefined) {
+      rest.amount = Number(rest.limitAmount);
+    }
+    if (rest.amount !== undefined && rest.limitAmount === undefined) {
+      rest.limitAmount = Number(rest.amount);
+    }
+
+    // Convert date string -> Date object nếu cần
+    if (rest.date && typeof rest.date === 'string') {
+      rest.date = new Date(rest.date);
+    }
+    if (rest.dueDate && typeof rest.dueDate === 'string') {
+      rest.dueDate = new Date(rest.dueDate);
+    }
+
+    return rest;
+  });
+};
+
+// ─── 1. EXPORT: Xuất toàn bộ dữ liệu ra JSON ──────────────────────────────────
+router.get('/export', protect, async (req, res) => {
+  try {
+    const userIdObj = toObjectId(req.userId);
+    const filter = userIdObj ? { user: userIdObj } : {};
+
+    const [transactions, budgets, loans, creditDebts, savingsGoals] = await Promise.all([
+      Transaction.find(filter).lean(),
+      Budget.find(filter).lean(),
+      Loan.find(filter).lean(),
+      CreditDebt.find(filter).lean(),
+      SavingsGoal.find(filter).lean(),
+    ]);
 
     res.status(200).json({
       success: true,
-      data: exportBundle,
+      data: {
+        exportDate: new Date().toISOString(),
+        version: '2.0',
+        data: { transactions, budgets, loans, creditDebts, savingsGoals }
+      },
       message: 'Xuất dữ liệu thành công'
     });
   } catch (error) {
@@ -39,37 +82,77 @@ router.get('/export', async (req, res) => {
   }
 });
 
-// 2. API Nhập dữ liệu từ file JSON (Ghi đè hoặc Hợp nhất)
-router.post('/import', async (req, res) => {
+// ─── 2. IMPORT: Nhập dữ liệu từ file JSON ─────────────────────────────────────
+router.post('/import', protect, async (req, res) => {
   try {
-    const { importData, mode } = req.body; // mode: 'OVERWRITE' | 'MERGE'
-    
+    const { importData, mode } = req.body;
+
     if (!importData || !importData.data) {
-      return res.status(400).json({ success: false, message: 'Cấu trúc file JSON không hợp lệ!' });
+      return res.status(400).json({
+        success: false,
+        message: 'Cấu trúc file JSON không hợp lệ! Hãy chọn đúng file backup do hệ thống tạo ra.'
+      });
+    }
+
+    const userIdObj = toObjectId(req.userId);
+    if (!userIdObj) {
+      return res.status(401).json({ success: false, message: 'Tài khoản người dùng không hợp lệ!' });
     }
 
     const { transactions, budgets, loans, creditDebts, savingsGoals } = importData.data;
 
+    // Collection thực tế trong MongoDB
+    const transCol   = getCol('transactions');
+    const budgetCol  = getCol('budgets');
+    const loanCol    = getCol('loans');
+    const creditCol  = getCol('creditdebts');
+    const savingsCol = getCol('savingsgoals');
+
+    // Nếu OVERWRITE: chỉ xóa dữ liệu thuộc về USER đang đăng nhập
     if (mode === 'OVERWRITE') {
-      await Transaction.deleteMany({});
-      await Budget.deleteMany({});
-      await Loan.deleteMany({});
-      await CreditDebt.deleteMany({});
-      await SavingsGoal.deleteMany({});
+      const deleteFilter = { user: userIdObj };
+      await Promise.all([
+        transCol.deleteMany(deleteFilter),
+        budgetCol.deleteMany(deleteFilter),
+        loanCol.deleteMany(deleteFilter),
+        creditCol.deleteMany(deleteFilter),
+        savingsCol.deleteMany(deleteFilter),
+      ]);
     }
 
-    if (transactions?.length) await Transaction.insertMany(transactions);
-    if (budgets?.length) await Budget.insertMany(budgets);
-    if (loans?.length) await Loan.insertMany(loans);
-    if (creditDebts?.length) await CreditDebt.insertMany(creditDebts);
-    if (savingsGoals?.length) await SavingsGoal.insertMany(savingsGoals);
+    const results = { inserted: 0, skipped: 0 };
 
-    res.status(200).json({
-      success: true,
-      message: `Phục hồi dữ liệu thành công (${mode === 'OVERWRITE' ? 'Chế độ ghi đè' : 'Chế độ gộp'})!`
-    });
+    const safeInsert = async (col, arr) => {
+      const docs = prepareDocs(arr, userIdObj);
+      if (!docs.length) return;
+      try {
+        const result = await col.insertMany(docs, { ordered: false });
+        results.inserted += result.insertedCount;
+      } catch (err) {
+        if (err.code === 11000 || err.writeErrors) {
+          const ok = err.result?.nInserted ?? (err.insertedCount ?? 0);
+          results.inserted += ok;
+          results.skipped += docs.length - ok;
+        } else {
+          throw err;
+        }
+      }
+    };
+
+    await safeInsert(transCol,   transactions);
+    await safeInsert(budgetCol,  budgets);
+    await safeInsert(loanCol,    loans);
+    await safeInsert(creditCol,  creditDebts);
+    await safeInsert(savingsCol, savingsGoals);
+
+    const modeLabel = mode === 'OVERWRITE' ? 'Ghi đè' : 'Gộp thêm';
+    let msg = `Phục hồi thành công (${modeLabel})! Đã nhập ${results.inserted} bản ghi vào tài khoản của bạn.`;
+    if (results.skipped > 0) msg += ` Bỏ qua ${results.skipped} bản ghi trùng lặp.`;
+
+    res.status(200).json({ success: true, message: msg });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ Lỗi import dữ liệu:', error);
+    res.status(500).json({ success: false, message: 'Lỗi server: ' + error.message });
   }
 });
 

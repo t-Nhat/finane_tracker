@@ -33,6 +33,7 @@ import PiggyBank from './components/PiggyBank';
 import CreditDebtManager from './components/CreditDebtManager';
 import NetWorthSummary from './components/NetWorthSummary';
 import DataTransfer from './components/DataTransfer';
+import ConfirmModal from './components/ConfirmModal';
 
 function App() {
   const { t } = useLanguage();
@@ -49,6 +50,8 @@ function App() {
   const [themeMode, setThemeMode] = useState(() => {
     return localStorage.getItem('user_theme') || 'light';
   });
+
+  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -79,14 +82,21 @@ function App() {
     window.location.reload();
   };
 
+  const executeLogout = () => {
+    setUser(null);
+    localStorage.removeItem('mern_finance_user');
+    localStorage.removeItem('token');
+    localStorage.clear();
+    window.location.reload();
+  };
+
   const handleLogout = () => {
-    if (window.confirm("Bạn có chắc chắn muốn đăng xuất?")) {
-      setUser(null);
-      localStorage.removeItem('mern_finance_user');
-      localStorage.removeItem('token');
-      localStorage.clear();
-      window.location.reload();
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Xác Nhận Đăng Xuất',
+      message: 'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không?',
+      onConfirm: executeLogout
+    });
   };
 
   if (!user) {
@@ -102,6 +112,13 @@ function App() {
 
   return (
     <div className="w-full h-screen overflow-hidden bg-slate-100/70 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col md:flex-row transition-colors duration-300">
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        onConfirm={confirmConfig.onConfirm}
+        onCancel={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
+      />
 
       {/* SIDEBAR NAVIGATION BAR */}
       <aside className="w-full md:w-72 bg-slate-900 dark:bg-slate-950 text-white flex flex-col justify-between p-5 shadow-2xl shrink-0 border-r border-slate-800/80 h-screen z-20 overflow-y-auto">

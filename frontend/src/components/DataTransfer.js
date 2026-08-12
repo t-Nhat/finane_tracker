@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Download, Upload, FileJson, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Download, Upload, FileJson, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownLeft, FolderOpen } from 'lucide-react';
+import ConfirmModal from './ConfirmModal';
 
 const API_BASE = 'http://localhost:5001/api/data-transfer';
 
@@ -17,6 +18,11 @@ export default function DataTransfer() {
   const [importMode, setImportMode] = useState('MERGE'); // 'MERGE' | 'OVERWRITE'
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [selectedFileName, setSelectedFileName] = useState('');
+  const fileInputRef = useRef(null);
+
+  // Modal State
+  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
   const handleExport = async () => {
     try {
@@ -46,53 +52,76 @@ export default function DataTransfer() {
     }
   };
 
+  const executeImport = async (parsedData) => {
+    try {
+      setLoading(true);
+      const token = getToken();
+      const res = await fetch(`${API_BASE}/import`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ importData: parsedData, mode: importMode })
+      });
+      const json = await res.json();
+
+      if (json.success) {
+        setMessage({ type: 'success', text: '✅ ' + json.message });
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        setMessage({ type: 'error', text: '❌ ' + json.message });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: '❌ Lỗi kết nối hoặc xử lý nhập dữ liệu!' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    if (!file) {
+      setSelectedFileName('');
+      return;
+    }
 
+    setSelectedFileName(file.name);
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
-        setLoading(true);
         const parsedData = JSON.parse(event.target.result);
         
         const confirmMsg = importMode === 'OVERWRITE' 
           ? '⚠️ CẢNH BÁO: Chế độ Ghi Đè sẽ XÓA HẾT dữ liệu hiện tại để thay bằng file mới. Bạn có chắc chắn không?'
           : 'Bạn muốn GỘP thêm dữ liệu từ file JSON này vào hệ thống?';
           
-        if (!window.confirm(confirmMsg)) {
-          setLoading(false);
-          return;
-        }
-
-        const token = getToken();
-        const res = await fetch(`${API_BASE}/import`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ importData: parsedData, mode: importMode })
+        setConfirmConfig({
+          isOpen: true,
+          title: importMode === 'OVERWRITE' ? 'Xác Nhận Ghi Đè' : 'Xác Nhận Gộp Dữ Liệu',
+          message: confirmMsg,
+          onConfirm: () => executeImport(parsedData)
         });
-        const json = await res.json();
 
-        if (json.success) {
-          setMessage({ type: 'success', text: '✅ ' + json.message });
-          setTimeout(() => window.location.reload(), 1500);
-        } else {
-          setMessage({ type: 'error', text: '❌ ' + json.message });
-        }
       } catch (err) {
         setMessage({ type: 'error', text: '❌ File JSON lỗi hoặc không đúng định dạng!' });
-      } finally {
-        setLoading(false);
       }
     };
     reader.readAsText(file);
+    // Reset input value so same file can be selected again
+    e.target.value = '';
   };
 
   return (
     <div className="space-y-6">
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        onConfirm={confirmConfig.onConfirm}
+        onCancel={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
+      />
+
       <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
         <div className="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-500">
           <FileJson className="w-5 h-5" />
@@ -172,16 +201,30 @@ export default function DataTransfer() {
             </div>
           </div>
 
-          <label className="mt-6 block">
-            <span className="sr-only">Chọn file JSON</span>
+          <div className="mt-6 flex items-center gap-3">
             <input
+              ref={fileInputRef}
               type="file"
               accept=".json"
               onChange={handleFileChange}
               disabled={loading}
-              className="block w-full text-xs text-slate-500 dark:text-slate-400 file:mr-3 file:py-3 file:px-4 file:rounded-2xl file:border-0 file:text-xs file:font-bold file:bg-slate-900 dark:file:bg-slate-700 file:text-white hover:file:bg-slate-800 cursor-pointer transition"
+              className="hidden"
             />
-          </label>
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-4 py-3 bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-extrabold text-xs rounded-2xl transition shadow-md active:scale-95 cursor-pointer shrink-0 disabled:opacity-50"
+            >
+              <FolderOpen className="w-4 h-4 text-emerald-400" />
+              <span>Chọn tệp JSON</span>
+            </button>
+
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate max-w-[200px]">
+              {selectedFileName || "Chưa chọn tệp nào"}
+            </span>
+          </div>
         </div>
       </div>
     </div>

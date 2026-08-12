@@ -1,13 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import ConfirmModal from './ConfirmModal';
+
+const API_BASE = 'http://localhost:5001/api/loans';
 
 export default function LoanManager() {
   const [loans, setLoans] = useState([]);
   const [activeTab, setActiveTab] = useState('LEND'); // 'LEND' | 'BORROW'
   const [formData, setFormData] = useState({ personName: '', amount: '', dueDate: '', note: '' });
+  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
   const fetchLoans = async () => {
     try {
-      const res = await fetch('http://localhost:5001/api/loans');
+      const res = await fetch(API_BASE);
       const json = await res.json();
       if (json.success) setLoans(json.data);
     } catch (err) {
@@ -23,7 +27,7 @@ export default function LoanManager() {
     e.preventDefault();
     if (!formData.personName || !formData.amount) return;
     try {
-      await fetch('http://localhost:5001/api/loans', {
+      await fetch(API_BASE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, type: activeTab, amount: Number(formData.amount) })
@@ -45,16 +49,35 @@ export default function LoanManager() {
     fetchLoans();
   };
 
-  const deleteLoan = async (id) => {
-    if (!window.confirm('Ông có chắc muốn xóa khoản này?')) return;
-    await fetch(`http://localhost:5001/api/loans/${id}`, { method: 'DELETE' });
-    fetchLoans();
+  const executeDelete = async (id) => {
+    try {
+      await fetch(`http://localhost:5001/api/loans/${id}`, { method: 'DELETE' });
+      fetchLoans();
+    } catch (err) {
+      alert('Lỗi khi xóa khoản vay/mượn');
+    }
+  };
+
+  const deleteLoan = (id) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Xóa Khoản Vay/Mượn',
+      message: 'Ông có chắc muốn xóa khoản này?',
+      onConfirm: () => executeDelete(id)
+    });
   };
 
   const filteredLoans = loans.filter(item => item.type === activeTab);
 
   return (
     <div className="space-y-6">
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        onConfirm={confirmConfig.onConfirm}
+        onCancel={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
+      />
       {/* Nút chuyển tab Cho mượn / Đang nợ */}
       <div className="flex gap-2 border-b pb-3">
         <button

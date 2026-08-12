@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Save, RotateCcw, Trash2, History, HardDrive, ShieldCheck } from 'lucide-react';
+import ConfirmModal from './ConfirmModal';
 
 export default function BackupHistory() {
   const [snapshots, setSnapshots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [noteInput, setNoteInput] = useState('');
+
+  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info' });
 
   const fetchSnapshots = async () => {
     try {
@@ -41,9 +44,7 @@ export default function BackupHistory() {
     }
   };
 
-  const handleRestore = async (id, note) => {
-    if (!window.confirm(`⚠️ CẢNH BÁO: Hệ thống sẽ quay trở lại trạng thái của bản [${note}]. Toàn bộ dữ liệu nhập sau thời điểm đó sẽ mất. Bạn có chắc chắn không?`)) return;
-    
+  const executeRestore = async (id) => {
     try {
       setLoading(true);
       const res = await fetch(`http://localhost:5001/api/backups/restore/${id}`, { method: 'POST' });
@@ -59,14 +60,45 @@ export default function BackupHistory() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Xóa bản lưu lịch sử này?')) return;
-    await fetch(`http://localhost:5001/api/backups/${id}`, { method: 'DELETE' });
-    fetchSnapshots();
+  const executeDelete = async (id) => {
+    try {
+      setLoading(true);
+      await fetch(`http://localhost:5001/api/backups/${id}`, { method: 'DELETE' });
+      fetchSnapshots();
+    } catch (err) {
+      alert('Lỗi xóa: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRestore = (id, note) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Xác Nhận Phục Hồi',
+      message: `⚠️ CẢNH BÁO: Hệ thống sẽ quay trở lại trạng thái của bản [${note}]. Toàn bộ dữ liệu nhập sau thời điểm đó sẽ mất. Bạn có chắc chắn không?`,
+      onConfirm: () => executeRestore(id)
+    });
+  };
+
+  const handleDelete = (id) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Xóa Bản Lưu',
+      message: 'Bạn có chắc chắn muốn xóa bản lưu lịch sử này không?',
+      onConfirm: () => executeDelete(id)
+    });
   };
 
   return (
     <div className="space-y-6">
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        onConfirm={confirmConfig.onConfirm}
+        onCancel={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
+      />
       <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
         <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-500">
           <HardDrive className="w-5 h-5" />
