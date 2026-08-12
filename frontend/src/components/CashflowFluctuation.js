@@ -229,9 +229,9 @@ export default function CashflowFluctuation() {
       {/* 3. HIỂN THỊ SỐ TỔNG & BADGE TĂNG GIẢM */}
       <div className="text-center mb-6">
         <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-          {metric === 'chitieu' && 'Tổng chi kỳ này'}
-          {metric === 'thunhap' && 'Tổng thu kỳ này'}
-          {metric === 'chenhlech' && 'Chênh lệch kỳ này'}
+          {metric === 'chitieu' && `Tổng chi (${timeframe === 'tuan' ? '7 tuần qua' : timeframe === 'nam' ? '7 năm qua' : '7 tháng qua'})`}
+          {metric === 'thunhap' && `Tổng thu (${timeframe === 'tuan' ? '7 tuần qua' : timeframe === 'nam' ? '7 năm qua' : '7 tháng qua'})`}
+          {metric === 'chenhlech' && `Chênh lệch (${timeframe === 'tuan' ? '7 tuần qua' : timeframe === 'nam' ? '7 năm qua' : '7 tháng qua'})`}
         </p>
         
         {loading ? (
@@ -286,9 +286,11 @@ export default function CashflowFluctuation() {
         ) : isDataEmpty ? (
           <div className="w-full h-full border-2 border-dashed border-gray-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center p-6 text-center bg-gray-50/50 dark:bg-slate-800/20">
             <span className="text-3xl mb-2">📊</span>
-            <p className="text-sm font-bold text-gray-700 dark:text-gray-300">Chưa có giao dịch nào trong kỳ này</p>
+            <p className="text-sm font-bold text-gray-700 dark:text-gray-300">
+              Chưa có dữ liệu {metric === 'chitieu' ? 'chi tiêu' : metric === 'thunhap' ? 'thu nhập' : 'giao dịch'} nào trong khoảng thời gian này
+            </p>
             <p className="text-xs text-gray-400 mt-1 max-w-xs">
-              Hãy thêm các khoản thu chi mới ở tab Giao Dịch để hệ thống tự động vẽ biểu đồ phân tích!
+              Hãy thêm các khoản thu chi mới ở tab Giao Dịch hoặc thử bấm chuyển sang Thu Nhập / Chênh Lệch!
             </p>
           </div>
         ) : (
