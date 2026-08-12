@@ -184,6 +184,17 @@ export default function CreditDebtManager() {
           placeholder="Hạn mức thẻ (nếu có)" 
           value={form.limitAmount} 
           onChange={e => setForm({...form, limitAmount: e.target.value})} 
+          ref={el => {
+            if (el) {
+              el.onwheel = (e) => {
+                e.preventDefault();
+                const current = Number(form.limitAmount || 0);
+                const next = Math.max(0, e.deltaY < 0 ? current + 1000 : current - 1000);
+                setForm(prev => ({ ...prev, limitAmount: next }));
+              };
+            }
+          }}
+          step="1000"
           className="p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/40" 
         />
         <input 
@@ -191,6 +202,17 @@ export default function CreditDebtManager() {
           placeholder="Dư nợ hiện tại (VNĐ)" 
           value={form.currentDebt} 
           onChange={e => setForm({...form, currentDebt: e.target.value})} 
+          ref={el => {
+            if (el) {
+              el.onwheel = (e) => {
+                e.preventDefault();
+                const current = Number(form.currentDebt || 0);
+                const next = Math.max(0, e.deltaY < 0 ? current + 1000 : current - 1000);
+                setForm(prev => ({ ...prev, currentDebt: next }));
+              };
+            }
+          }}
+          step="1000"
           className="p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/40" 
           required 
         />
@@ -328,6 +350,17 @@ export default function CreditDebtManager() {
               placeholder="VD: 500000"
               value={payModal.amount}
               onChange={e => setPayModal({ ...payModal, amount: e.target.value })}
+              ref={el => {
+                if (el) {
+                  el.onwheel = (e) => {
+                    e.preventDefault();
+                    const current = Number(payModal.amount || 0);
+                    const next = Math.max(0, e.deltaY < 0 ? current + 1000 : current - 1000);
+                    setPayModal(prev => ({ ...prev, amount: next }));
+                  };
+                }
+              }}
+              step="1000"
               className="w-full p-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/40 mb-4"
               autoFocus
             />

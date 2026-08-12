@@ -86,6 +86,17 @@ export default function LoanManager() {
           placeholder="Số tiền (VNĐ)"
           value={formData.amount}
           onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+          ref={(el) => {
+            if (el) {
+              el.onwheel = (e) => {
+                e.preventDefault();
+                const current = Number(formData.amount || 0);
+                const next = Math.max(0, e.deltaY < 0 ? current + 1000 : current - 1000);
+                setFormData(prev => ({ ...prev, amount: next }));
+              };
+            }
+          }}
+          step="1000"
           className="p-2 border rounded-lg md:col-span-1 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           required
         />

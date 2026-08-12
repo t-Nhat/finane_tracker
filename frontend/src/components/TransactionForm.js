@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRefresh } from '../context/RefreshContext';
 import { Save, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 
@@ -11,6 +11,24 @@ function TransactionForm({ onTransactionAdded }) {
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modal, setModal] = useState({ show: false, type: 'success', title: '', message: '' });
+  const amountInputRef = useRef(null);
+
+  useEffect(() => {
+    const el = amountInputRef.current;
+    if (!el) return;
+
+    const handleWheel = (e) => {
+      e.preventDefault();
+      const current = Number(amount || 0);
+      const next = Math.max(0, e.deltaY < 0 ? current + 1000 : current - 1000);
+      setAmount(next);
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+    };
+  }, [amount]);
 
   const getToken = () => {
     const token = localStorage.getItem('token');
@@ -188,14 +206,16 @@ function TransactionForm({ onTransactionAdded }) {
             Số tiền (VNĐ):
           </label>
           <input 
+            ref={amountInputRef}
             type="number" 
             value={amount} 
             onChange={(e) => setAmount(e.target.value)} 
             required 
             min="1000" 
+            step="1000"
             max="1000000000"
             placeholder="Ví dụ: 50000"
-            className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm font-mono font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+            className="money-input w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm font-mono font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
           />
         </div>
 

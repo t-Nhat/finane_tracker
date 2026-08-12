@@ -177,6 +177,17 @@ export default function PiggyBank() {
             placeholder="Số tiền mục tiêu (VNĐ)" 
             value={form.targetAmount} 
             onChange={e => setForm({...form, targetAmount: e.target.value})} 
+            ref={el => {
+              if (el) {
+                el.onwheel = (e) => {
+                  e.preventDefault();
+                  const current = Number(form.targetAmount || 0);
+                  const next = Math.max(0, e.deltaY < 0 ? current + 1000 : current - 1000);
+                  setForm(prev => ({ ...prev, targetAmount: next }));
+                };
+              }
+            }}
+            step="1000"
             className="w-full p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-pink-500/40" 
             required 
           />
@@ -351,6 +362,17 @@ export default function PiggyBank() {
               placeholder="VD: 100000"
               value={actionModal.amount}
               onChange={e => setActionModal({ ...actionModal, amount: e.target.value })}
+              ref={el => {
+                if (el) {
+                  el.onwheel = (e) => {
+                    e.preventDefault();
+                    const current = Number(actionModal.amount || 0);
+                    const next = Math.max(0, e.deltaY < 0 ? current + 1000 : current - 1000);
+                    setActionModal(prev => ({ ...prev, amount: next }));
+                  };
+                }
+              }}
+              step="1000"
               className="w-full p-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500/40 mb-4"
               autoFocus
             />

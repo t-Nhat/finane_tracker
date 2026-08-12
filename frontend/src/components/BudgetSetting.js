@@ -1,10 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 const BudgetSetting = () => {
   const [limitAmount, setLimitAmount] = useState('');
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const limitInputRef = useRef(null);
+
+  useEffect(() => {
+    const el = limitInputRef.current;
+    if (!el) return;
+
+    const handleWheel = (e) => {
+      e.preventDefault();
+      const current = Number(limitAmount || 0);
+      const next = Math.max(0, e.deltaY < 0 ? current + 1000 : current - 1000);
+      setLimitAmount(next);
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+    };
+  }, [limitAmount]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,6 +67,7 @@ const BudgetSetting = () => {
         <div>
           <label htmlFor="limitInput">Hạn mức (VNĐ):</label>
           <input
+            ref={limitInputRef}
             id="limitInput"
             type="number"
             value={limitAmount}
@@ -56,6 +75,8 @@ const BudgetSetting = () => {
             placeholder="Nhập số tiền..."
             required
             min="0"
+            step="1000"
+            className="money-input"
           />
         </div>
         <button type="submit" disabled={isSubmitting}>
