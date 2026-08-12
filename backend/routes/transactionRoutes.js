@@ -11,6 +11,18 @@ router.get('/', protect, async (req, res) => {
     // 🟢 CHỈ LẤY GIAO DỊCH CỦA USER ĐANG ĐĂNG NHẬP (req.userId lấy từ protect middleware)
     const transactions = await Transaction.find({ user: req.userId }).sort({ date: -1 });
 
+    // 🔥 Tự động sửa lại những giao dịch bị nhập nhầm năm (ví dụ năm 20026 -> năm 2026)
+    for (let t of transactions) {
+      if (t.date) {
+        const d = new Date(t.date);
+        if (d.getFullYear() > 2099) {
+          d.setFullYear(2026);
+          t.date = d;
+          await Transaction.updateOne({ _id: t._id }, { date: d });
+        }
+      }
+    }
+
     res.status(200).json({
       success: true,
       count: transactions.length,
@@ -33,13 +45,18 @@ router.post('/', protect, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Vui lòng điền đầy đủ thông tin bắt buộc' });
     }
 
-    // 🟢 GÁN ID NGƯỜI DÙNG ĐANG ĐĂNG NHẬP VÀO GIAO DỊCH MỚI
+    // Kiểm tra & xử lý năm hợp lệ (nếu > 2099 thì chuẩn hóa về năm 2026)
+    let parsedDate = date ? new Date(date) : new Date();
+    if (isNaN(parsedDate.getTime()) || parsedDate.getFullYear() > 2099) {
+      parsedDate.setFullYear(2026);
+    }
+
     const newTransaction = await Transaction.create({
-      user: req.userId, // 🔥 Dòng này giúp dữ liệu không bị lẫn lộn giữa các tài khoản!
+      user: req.userId,
       type,
       category,
       amount: Number(amount),
-      date: date || Date.now(),
+      date: parsedDate,
       note: note || ''
     });
 

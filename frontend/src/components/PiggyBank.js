@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PiggyBank as PiggyIcon, Plus, Trash2, Calendar, Target, Sparkles, CheckCircle2 } from 'lucide-react';
+import { useRefresh } from '../context/RefreshContext';
 
 const API_BASE = 'http://localhost:5001/api/savings-goals';
 
@@ -14,6 +15,7 @@ const getToken = () => {
 };
 
 export default function PiggyBank() {
+  const { triggerRefresh } = useRefresh();
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ goalName: '', targetAmount: '', deadline: '' });
@@ -73,6 +75,7 @@ export default function PiggyBank() {
         body: JSON.stringify({ amount: Number(amount) })
       });
       fetchGoals();
+      triggerRefresh();
     } catch (err) {
       alert('Lỗi nạp tiền: ' + err.message);
     }

@@ -22,19 +22,32 @@ router.post('/', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
+const Transaction = require('../models/Transaction');
+
 // Nạp tiền vào heo
 router.put('/:id/deposit', protect, async (req, res) => {
   try {
     const { amount } = req.body;
+    const numAmount = Number(amount);
     const goal = await SavingsGoal.findOne({ _id: req.params.id, user: req.userId });
     
     if (!goal) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy mục tiêu!' });
     }
 
-    goal.currentAmount += Number(amount);
+    goal.currentAmount += numAmount;
     if (goal.currentAmount >= goal.targetAmount) goal.status = 'COMPLETED';
     await goal.save();
+
+    // 🟢 TỰ ĐỘNG TẠO GIAO DỊCH "CHI" ĐỂ TRỪ TIỀN VÀO TỔNG TÀI SẢN KHẢ DỤNG KHẢ DỤNG
+    await Transaction.create({
+      user: req.userId,
+      type: 'Chi',
+      category: 'Bỏ heo tiết kiệm',
+      amount: numAmount,
+      date: new Date(),
+      note: `Bỏ tiền vào heo: ${goal.goalName}`
+    });
     
     res.status(200).json({ success: true, data: goal });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }

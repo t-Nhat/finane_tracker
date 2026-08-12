@@ -39,10 +39,24 @@ const getCategoryIcon = (catName) => {
   return '📦';
 };
 
-const DashboardChart = () => {
+const DashboardChart = ({ 
+  selectedYear: propYear, 
+  setSelectedYear: setPropYear, 
+  selectedMonth: propMonth, 
+  setSelectedMonth: setPropMonth 
+}) => {
   const { refreshKey } = useRefresh();
+  const now = new Date();
+  const [internalYear, setInternalYear] = useState(2026);
+  const [internalMonth, setInternalMonth] = useState('all');
+
+  const selectedYear = propYear !== undefined ? propYear : internalYear;
+  const setSelectedYear = setPropYear || setInternalYear;
+
+  const selectedMonth = propMonth !== undefined ? propMonth : internalMonth;
+  const setSelectedMonth = setPropMonth || setInternalMonth;
+
   const [activeTab, setActiveTab] = useState('Chi'); // 'Chi' hoặc 'Thu'
-  const [timeFilter, setTimeFilter] = useState('Tháng này');
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -76,21 +90,12 @@ const DashboardChart = () => {
     fetchTransactions();
   }, [refreshKey]);
 
-  // Lọc dữ liệu theo mốc thời gian
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
-
+  // Lọc dữ liệu theo mốc thời gian (Tháng & Năm đã chọn)
   const filteredByTime = transactions.filter(t => {
     if (!t.date) return true;
     const d = new Date(t.date);
-    if (timeFilter === 'Tháng này') {
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    }
-    if (timeFilter === 'Tháng trước') {
-      const lastMonthDate = new Date(currentYear, currentMonth - 1, 1);
-      return d.getMonth() === lastMonthDate.getMonth() && d.getFullYear() === lastMonthDate.getFullYear();
-    }
+    if (d.getFullYear() !== Number(selectedYear)) return false;
+    if (selectedMonth !== 'all' && (d.getMonth() + 1) !== Number(selectedMonth)) return false;
     return true;
   });
 
@@ -107,14 +112,17 @@ const DashboardChart = () => {
     if (isChi) totalExpense += amt;
   });
 
-  // Tính mức chênh lệch so với tháng trước cho Banner Cảnh Báo 🔥
+  // Tính mức chênh lệch so với cùng kỳ tháng trước (hoặc năm trước)
+  const currentMonthNum = selectedMonth === 'all' ? (now.getMonth() + 1) : Number(selectedMonth);
+  const prevMonthNum = currentMonthNum === 1 ? 12 : currentMonthNum - 1;
+  const prevYearNum = currentMonthNum === 1 ? Number(selectedYear) - 1 : Number(selectedYear);
+
   const prevMonthExpense = transactions
     .filter(t => {
       if (!t.date) return false;
       const d = new Date(t.date);
-      const lastMonthDate = new Date(currentYear, currentMonth - 1, 1);
       const isChi = t.type === 'Chi' || t.type === 'chi' || t.type === 'expense';
-      return isChi && d.getMonth() === lastMonthDate.getMonth() && d.getFullYear() === lastMonthDate.getFullYear();
+      return isChi && (d.getMonth() + 1) === prevMonthNum && d.getFullYear() === prevYearNum;
     })
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
@@ -168,29 +176,56 @@ const DashboardChart = () => {
     ]
   };
 
+  const years = [2024, 2025, 2026, 2027];
+  const months = [
+    { value: 'all', label: 'Cả năm' },
+    { value: '1', label: 'Tháng 1' },
+    { value: '2', label: 'Tháng 2' },
+    { value: '3', label: 'Tháng 3' },
+    { value: '4', label: 'Tháng 4' },
+    { value: '5', label: 'Tháng 5' },
+    { value: '6', label: 'Tháng 6' },
+    { value: '7', label: 'Tháng 7' },
+    { value: '8', label: 'Tháng 8' },
+    { value: '9', label: 'Tháng 9' },
+    { value: '10', label: 'Tháng 10' },
+    { value: '11', label: 'Tháng 11' },
+    { value: '12', label: 'Tháng 12' }
+  ];
+
   return (
     <div className="w-full flex flex-col items-center bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-gray-100 dark:border-slate-800 transition-colors">
       
-      {/* 1. THANH CHỌN MỐC THỜI GIAN */}
-      <div className="flex items-center justify-between w-full mb-5 px-2">
-        <button 
-          onClick={() => setTimeFilter(timeFilter === 'Tháng này' ? 'Tháng trước' : 'Tháng này')}
-          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 transition-colors"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-
-        <div className="flex items-center gap-2 font-bold text-gray-800 dark:text-white text-base">
-          <Calendar className="w-4 h-4 text-gray-500" />
-          <span>{timeFilter}</span>
+      {/* 1. THANH CHỌN MỐC THỜI GIAN (NĂM & THÁNG) */}
+      <div className="flex flex-wrap items-center justify-between gap-3 w-full mb-5 px-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-white text-base">
+          <Calendar className="w-5 h-5 text-emerald-500" />
+          <span>Báo Cáo Thu Chi:</span>
         </div>
 
-        <button 
-          onClick={() => setTimeFilter(timeFilter === 'Tháng này' ? 'Tất cả' : 'Tháng này')}
-          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 transition-colors"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Select Chọn Tháng */}
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="px-3 py-1.5 text-xs md:text-sm font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+          >
+            {months.map(m => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
+          </select>
+
+          {/* Select Chọn Năm */}
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="px-3 py-1.5 text-xs md:text-sm font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+          >
+            {years.map(y => (
+              <option key={y} value={y}>Năm {y}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* 2. HAI TAB VIỀN NỔI BẬT THU CHI */}
@@ -274,7 +309,7 @@ const DashboardChart = () => {
         <div className="flex flex-col items-center justify-center h-56 text-gray-400 bg-gray-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-gray-200 dark:border-slate-700 w-full p-6 text-center">
           <span className="text-3xl mb-2">{activeTab === 'Thu' ? '💰' : '💸'}</span>
           <p className="font-semibold text-gray-700 dark:text-gray-300 text-sm">
-            Chưa có giao dịch {activeTab === 'Thu' ? 'Thu nhập' : 'Chi tiêu'} ({timeFilter})
+            Chưa có giao dịch {activeTab === 'Thu' ? 'Thu nhập' : 'Chi tiêu'} ({selectedMonth === 'all' ? `Năm ${selectedYear}` : `Tháng ${selectedMonth}/${selectedYear}`})
           </p>
           <p className="text-xs text-gray-400 mt-1">
             Hãy nhập giao dịch ở tab Thu Chi để hiển thị biểu đồ phân bổ.

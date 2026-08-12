@@ -43,6 +43,8 @@ function App() {
   });
 
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [dashboardYear, setDashboardYear] = useState(2026);
+  const [dashboardMonth, setDashboardMonth] = useState('all');
 
   const [themeMode, setThemeMode] = useState(() => {
     return localStorage.getItem('user_theme') || 'light';
@@ -266,10 +268,18 @@ function App() {
             <NetWorthSummary />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200/60 dark:border-slate-800/80">
-                <DashboardChart />
+                <DashboardChart 
+                  selectedYear={dashboardYear} 
+                  setSelectedYear={setDashboardYear} 
+                  selectedMonth={dashboardMonth} 
+                  setSelectedMonth={setDashboardMonth} 
+                />
               </div>
               <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200/60 dark:border-slate-800/80 h-fit">
-                <CashflowLineChart />
+                <CashflowLineChart 
+                  selectedYear={dashboardYear} 
+                  selectedMonth={dashboardMonth} 
+                />
               </div>
             </div>
           </div>

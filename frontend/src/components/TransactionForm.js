@@ -42,8 +42,8 @@ function TransactionForm({ onTransactionAdded }) {
     }
 
     const selectedYear = new Date(date).getFullYear();
-    if (selectedYear < 2000) {
-      alert("⚠️ Vui lòng chọn ngày giao dịch từ năm 2000 trở đi!");
+    if (selectedYear < 2000 || selectedYear > 2099) {
+      alert("⚠️ Vui lòng chọn ngày giao dịch từ năm 2000 đến 2099!");
       return; 
     }
 
@@ -138,6 +138,7 @@ function TransactionForm({ onTransactionAdded }) {
           onChange={(e) => setDate(e.target.value)} 
           required 
           min="2000-01-01" 
+          max="2099-12-31"
         />
       </div>
 

@@ -47,10 +47,19 @@ const getMonthlyStats = async (req, res) => {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ message: 'Chưa xác thực người dùng!' });
 
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    const [year, monthNum] = currentMonth.split('-');
-    const startDate = new Date(year, monthNum - 1, 1);
-    const endDate = new Date(year, monthNum, 0, 23, 59, 59);
+    const now = new Date();
+    const targetYear = req.query.year ? parseInt(req.query.year) : now.getFullYear();
+    const monthQuery = req.query.month;
+
+    let startDate, endDate;
+    if (!monthQuery || monthQuery === 'all') {
+      startDate = new Date(targetYear, 0, 1, 0, 0, 0);
+      endDate = new Date(targetYear, 11, 31, 23, 59, 59);
+    } else {
+      const monthNum = parseInt(monthQuery);
+      startDate = new Date(targetYear, monthNum - 1, 1, 0, 0, 0);
+      endDate = new Date(targetYear, monthNum, 0, 23, 59, 59);
+    }
 
     const stats = await Transaction.aggregate([
       { 
@@ -144,11 +153,41 @@ const getCashflow14Days = async (req, res) => {
     if (!userId) return res.status(401).json({ message: 'Chưa xác thực người dùng!' });
 
     const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth(); // 0-indexed (6 = Tháng 7)
+    const year = req.query.year ? parseInt(req.query.year) : now.getFullYear();
+    const monthQuery = req.query.month;
 
+    if (!monthQuery || monthQuery === 'all') {
+      // Trả về 12 tháng trong năm
+      const startDate = new Date(year, 0, 1, 0, 0, 0);
+      const endDate = new Date(year, 11, 31, 23, 59, 59);
+
+      const transactions = await Transaction.find({
+        user: userId,
+        date: { $gte: startDate, $lte: endDate }
+      }).sort({ date: 1 });
+
+      const monthMap = {};
+      for (let m = 1; m <= 12; m++) {
+        const monthLabel = `T${m}/${year}`;
+        monthMap[m] = { date: monthLabel, thu: 0, chi: 0 };
+      }
+
+      transactions.forEach(t => {
+        const d = new Date(t.date);
+        const m = d.getMonth() + 1;
+        if (monthMap[m]) {
+          if (t.type === 'Thu') monthMap[m].thu += t.amount;
+          if (t.type === 'Chi') monthMap[m].chi += t.amount;
+        }
+      });
+
+      return res.status(200).json({ success: true, data: Object.values(monthMap) });
+    }
+
+    // Chọn tháng cụ thể trong năm
+    const month = parseInt(monthQuery) - 1; // 0-indexed
     const startDate = new Date(year, month, 1, 0, 0, 0);
-    const daysInMonth = new Date(year, month + 1, 0).getDate(); // Số ngày trong tháng (ví dụ: 31 ngày)
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
     const endDate = new Date(year, month + 1, 0, 23, 59, 59);
 
     const transactions = await Transaction.find({
@@ -157,17 +196,21 @@ const getCashflow14Days = async (req, res) => {
     }).sort({ date: 1 });
 
     const dateMap = {};
+    const monthStr = String(month + 1).padStart(2, '0');
     for (let i = 1; i <= daysInMonth; i++) {
-      const d = new Date(year, month, i);
-      const dateStr = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
-      dateMap[dateStr] = { date: dateStr, thu: 0, chi: 0 };
+      const dayStr = String(i).padStart(2, '0');
+      const dateKey = `${dayStr}/${monthStr}`;
+      dateMap[dateKey] = { date: dateKey, thu: 0, chi: 0 };
     }
 
     transactions.forEach(t => {
-      const dateStr = new Date(t.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
-      if (dateMap[dateStr]) {
-        if (t.type === 'Thu') dateMap[dateStr].thu += t.amount;
-        if (t.type === 'Chi') dateMap[dateStr].chi += t.amount;
+      const d = new Date(t.date);
+      const dayStr = String(d.getDate()).padStart(2, '0');
+      const mStr = String(d.getMonth() + 1).padStart(2, '0');
+      const dateKey = `${dayStr}/${mStr}`;
+      if (dateMap[dateKey]) {
+        if (t.type === 'Thu') dateMap[dateKey].thu += t.amount;
+        if (t.type === 'Chi') dateMap[dateKey].chi += t.amount;
       }
     });
 

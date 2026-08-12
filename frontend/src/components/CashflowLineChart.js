@@ -31,15 +31,26 @@ const getToken = () => {
   return null;
 };
 
-export default function CashflowLineChart() {
+export default function CashflowLineChart({ selectedMonth: propMonth, selectedYear: propYear }) {
   const { refreshKey } = useRefresh();
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(propYear || 2026);
+  const [selectedMonth, setSelectedMonth] = useState(propMonth !== undefined ? propMonth : (now.getMonth() + 1));
   const [chartData, setChartData] = useState(null);
 
   useEffect(() => {
-    const fetch30DaysData = async () => {
+    if (propMonth !== undefined) setSelectedMonth(propMonth);
+  }, [propMonth]);
+
+  useEffect(() => {
+    if (propYear !== undefined) setSelectedYear(propYear);
+  }, [propYear]);
+
+  useEffect(() => {
+    const fetchCashflowData = async () => {
       try {
         const token = getToken();
-        const res = await fetch('http://localhost:5001/api/dashboard/cashflow-14days', {
+        const res = await fetch(`http://localhost:5001/api/dashboard/cashflow-14days?month=${selectedMonth}&year=${selectedYear}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -47,7 +58,6 @@ export default function CashflowLineChart() {
         const json = await res.json();
         
         if (json.success && Array.isArray(json.data)) {
-          // Backend trả về mảng [{date, thu, chi}] tất cả các ngày trong tháng hiện tại (ví dụ: 01/07 - 31/07)
           const labels = json.data.map(item => item.date);
           const incomeData = json.data.map(item => item.thu);
           const expenseData = json.data.map(item => item.chi);
@@ -83,8 +93,8 @@ export default function CashflowLineChart() {
       }
     };
 
-    fetch30DaysData();
-  }, [refreshKey]);
+    fetchCashflowData();
+  }, [refreshKey, selectedMonth, selectedYear]);
 
   const options = {
     responsive: true,
