@@ -108,7 +108,10 @@ function TransactionList() {
             {transactions.map((transaction) => (
               <tr key={transaction._id}>
                 <td>{transaction.date ? new Date(transaction.date).toLocaleDateString('vi-VN') : ''}</td>
-                <td style={{ color: transaction.type === 'Thu' ? 'green' : 'red', fontWeight: 'bold' }}>
+                <td style={{ 
+                  color: (transaction.type === 'Thu' || transaction.type === 'Rút tiết kiệm') ? '#10b981' : transaction.type === 'Tiết kiệm' ? '#ec4899' : '#f43f5e', 
+                  fontWeight: 'bold' 
+                }}>
                   {transaction.type}
                 </td>
                 <td>{transaction.category}</td>

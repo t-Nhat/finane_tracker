@@ -10,7 +10,7 @@ const transactionSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['Thu', 'Chi'],
+      enum: ['Thu', 'Chi', 'Tiết kiệm', 'Rút tiết kiệm'],
       required: true
     },
     category: {

@@ -11,7 +11,7 @@ router.get('/', protect, async (req, res) => {
     // 🟢 CHỈ LẤY GIAO DỊCH CỦA USER ĐANG ĐĂNG NHẬP (req.userId lấy từ protect middleware)
     const transactions = await Transaction.find({ user: req.userId }).sort({ date: -1 });
 
-    // 🔥 Tự động sửa lại những giao dịch bị nhập nhầm năm (ví dụ năm 20026 -> năm 2026)
+    // 🔥 Tự động sửa lại những giao dịch bị nhập nhầm năm và chuẩn hóa loại giao dịch Tiết kiệm
     for (let t of transactions) {
       if (t.date) {
         const d = new Date(t.date);
@@ -20,6 +20,14 @@ router.get('/', protect, async (req, res) => {
           t.date = d;
           await Transaction.updateOne({ _id: t._id }, { date: d });
         }
+      }
+      if (t.category === 'Bỏ heo tiết kiệm' && t.type === 'Chi') {
+        t.type = 'Tiết kiệm';
+        await Transaction.updateOne({ _id: t._id }, { type: 'Tiết kiệm' });
+      }
+      if ((t.category === 'Rút tiền tiết kiệm' || t.category === 'Hoàn tiền tiết kiệm') && t.type === 'Thu') {
+        t.type = 'Rút tiết kiệm';
+        await Transaction.updateOne({ _id: t._id }, { type: 'Rút tiết kiệm' });
       }
     }
 

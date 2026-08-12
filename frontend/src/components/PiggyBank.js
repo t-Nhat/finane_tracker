@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PiggyBank as PiggyIcon, Plus, Trash2, Calendar, Target, Sparkles, CheckCircle2 } from 'lucide-react';
+import { PiggyBank as PiggyIcon, Plus, Minus, Trash2, Calendar, Target, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useRefresh } from '../context/RefreshContext';
 
 const API_BASE = 'http://localhost:5001/api/savings-goals';
@@ -66,7 +66,7 @@ export default function PiggyBank() {
     if (!amount || isNaN(amount) || Number(amount) <= 0) return;
     try {
       const token = getToken();
-      await fetch(`${API_BASE}/${id}/deposit`, {
+      const res = await fetch(`${API_BASE}/${id}/deposit`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -74,6 +74,11 @@ export default function PiggyBank() {
         },
         body: JSON.stringify({ amount: Number(amount) })
       });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        alert(json.message || 'Lỗi nạp tiền vào heo!');
+        return;
+      }
       fetchGoals();
       triggerRefresh();
     } catch (err) {
@@ -81,15 +86,49 @@ export default function PiggyBank() {
     }
   };
 
-  const deleteGoal = async (id) => {
-    if (window.confirm('Bạn có chắc muốn xóa mục tiêu tiết kiệm này?')) {
+  const handleWithdraw = async (id) => {
+    const amount = prompt('Nhập số tiền muốn rút từ heo (VNĐ):', '100000');
+    if (!amount || isNaN(amount) || Number(amount) <= 0) return;
+    try {
+      const token = getToken();
+      const res = await fetch(`${API_BASE}/${id}/withdraw`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ amount: Number(amount) })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        alert(json.message || 'Lỗi rút tiền từ heo!');
+        return;
+      }
+      fetchGoals();
+      triggerRefresh();
+    } catch (err) {
+      alert('Lỗi rút tiền: ' + err.message);
+    }
+  };
+
+  const deleteGoal = async (id, currentAmount = 0) => {
+    const confirmMsg = currentAmount > 0 
+      ? `Bạn có chắc muốn xóa mục tiêu này? Số tiền ${currentAmount.toLocaleString('vi-VN')}đ tích lũy trong heo sẽ được hoàn tự động về tài khoản ví của bạn.`
+      : 'Bạn có chắc muốn xóa mục tiêu tiết kiệm này?';
+
+    if (window.confirm(confirmMsg)) {
       try {
         const token = getToken();
-        await fetch(`${API_BASE}/${id}`, { 
+        const res = await fetch(`${API_BASE}/${id}`, { 
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
+        const json = await res.json();
+        if (json.success && json.message) {
+          alert(json.message);
+        }
         fetchGoals();
+        triggerRefresh();
       } catch (err) {
         alert('Lỗi xóa mục tiêu: ' + err.message);
       }
@@ -141,6 +180,8 @@ export default function PiggyBank() {
             type="date" 
             value={form.deadline} 
             onChange={e => setForm({...form, deadline: e.target.value})} 
+            min="2000-01-01"
+            max="2099-12-31"
             className="w-full p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-pink-500/40" 
           />
         </div>
@@ -183,7 +224,7 @@ export default function PiggyBank() {
                       🐷
                     </div>
                     <button 
-                      onClick={() => deleteGoal(goal._id)} 
+                      onClick={() => deleteGoal(goal._id, current)} 
                       className={`p-2 rounded-xl transition ${isDone ? 'text-white/70 hover:text-white hover:bg-white/20' : 'text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40'}`}
                       title="Xóa mục tiêu"
                     >
@@ -222,18 +263,43 @@ export default function PiggyBank() {
 
                 <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/80">
                   {isDone ? (
-                    <div className="flex items-center justify-center gap-2 font-bold text-xs bg-white text-pink-600 py-3 rounded-2xl shadow-md">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                      <span>🎉 ĐÃ HOÀN THÀNH MỤC TIÊU!</span>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-center gap-2 font-bold text-xs bg-white text-pink-600 py-2.5 rounded-2xl shadow-md">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                        <span>🎉 ĐÃ HOÀN THÀNH MỤC TIÊU!</span>
+                      </div>
+                      {current > 0 && (
+                        <button 
+                          onClick={() => handleWithdraw(goal._id)} 
+                          className="w-full flex items-center justify-center gap-1.5 font-bold bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-500 hover:text-white text-amber-600 dark:text-amber-400 py-2.5 rounded-2xl transition duration-200 text-xs shadow-sm active:scale-95 border border-amber-200/60 dark:border-amber-800/60"
+                        >
+                          <Minus className="w-4 h-4" />
+                          <span>Rút Tiền</span>
+                        </button>
+                      )}
                     </div>
                   ) : (
-                    <button 
-                      onClick={() => handleDeposit(goal._id)} 
-                      className="w-full flex items-center justify-center gap-2 font-bold bg-pink-50 dark:bg-pink-950/40 hover:bg-pink-500 hover:text-white text-pink-600 dark:text-pink-400 py-3 rounded-2xl transition duration-200 text-xs shadow-sm active:scale-95 border border-pink-200/60 dark:border-pink-800/60"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Bỏ Tiền Vào Heo</span>
-                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button 
+                        onClick={() => handleDeposit(goal._id)} 
+                        className="flex items-center justify-center gap-1 font-bold bg-pink-50 dark:bg-pink-950/40 hover:bg-pink-500 hover:text-white text-pink-600 dark:text-pink-400 py-2.5 rounded-2xl transition duration-200 text-xs shadow-sm active:scale-95 border border-pink-200/60 dark:border-pink-800/60"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Nạp Tiền</span>
+                      </button>
+                      <button 
+                        onClick={() => handleWithdraw(goal._id)} 
+                        disabled={current <= 0}
+                        className={`flex items-center justify-center gap-1 font-bold py-2.5 rounded-2xl transition duration-200 text-xs shadow-sm border ${
+                          current > 0 
+                            ? 'bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-500 hover:text-white text-amber-600 dark:text-amber-400 border-amber-200/60 dark:border-amber-800/60 active:scale-95' 
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-800 cursor-not-allowed opacity-60'
+                        }`}
+                      >
+                        <Minus className="w-4 h-4" />
+                        <span>Rút Tiền</span>
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

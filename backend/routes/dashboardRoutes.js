@@ -133,7 +133,8 @@ router.get('/net-worth', async (req, res) => {
       debts.forEach(d => totalOrgDebt += Number(d.currentDebt || 0));
     } catch (e) {}
 
-    const netWorth = (cashBalance + totalLend + totalSavings) - totalBorrow; // Không trừ totalOrgDebt vì đây chỉ là ghi nhớ nghĩa vụ tương lai
+    // 5. Tính Tổng Tài Sản Khả Dụng (Số tiền khả dụng trong Ví + Cho vay - Nợ)
+    const netWorth = (cashBalance + totalLend) - totalBorrow;
 
     return res.status(200).json({
       success: true,
