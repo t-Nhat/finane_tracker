@@ -43,7 +43,8 @@ export default function CashflowFluctuation() {
     currentData: [0, 0, 0, 0, 0, 0, 0],
     previousData: [0, 0, 0, 0, 0, 0, 0],
     totalAmount: 0,
-    diffAmount: 0
+    diffAmount: 0,
+    hasPrevData: false
   });
 
   // Gọi API lấy dữ liệu thật từ Backend
@@ -70,7 +71,8 @@ export default function CashflowFluctuation() {
             currentData: Array.isArray(d.currentData) ? d.currentData : [0, 0, 0, 0, 0, 0, 0],
             previousData: Array.isArray(d.previousData) ? d.previousData : [0, 0, 0, 0, 0, 0, 0],
             totalAmount: Number(d.totalAmount || 0),
-            diffAmount: Number(d.diffAmount || 0)
+            diffAmount: Number(d.diffAmount || 0),
+            hasPrevData: Boolean(d.hasPrevData)
           });
         } else {
           setApiData({
@@ -78,7 +80,8 @@ export default function CashflowFluctuation() {
             currentData: [0, 0, 0, 0, 0, 0, 0],
             previousData: [0, 0, 0, 0, 0, 0, 0],
             totalAmount: 0,
-            diffAmount: 0
+            diffAmount: 0,
+            hasPrevData: false
           });
         }
         setLoading(false);
@@ -239,13 +242,19 @@ export default function CashflowFluctuation() {
           </h3>
         )}
 
-        <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-full text-xs font-semibold">
-          <span>{(apiData?.diffAmount || 0) >= 0 ? '↑' : '↓'}</span>
-          <span>
-            {(apiData?.diffAmount || 0) >= 0 ? 'Tăng ' : 'Giảm '} 
-            {Math.abs(apiData?.diffAmount || 0).toLocaleString('vi-VN')}đ so với cùng kỳ trước
-          </span>
-        </div>
+        {apiData?.hasPrevData ? (
+          <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-full text-xs font-semibold">
+            <span>{(apiData?.diffAmount || 0) >= 0 ? '↑' : '↓'}</span>
+            <span>
+              {(apiData?.diffAmount || 0) >= 0 ? 'Tăng ' : 'Giảm '} 
+              {Math.abs(apiData?.diffAmount || 0).toLocaleString('vi-VN')}đ so với kỳ trước
+            </span>
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-full text-xs font-medium">
+            <span>ℹ️ Chưa có dữ liệu kỳ trước để so sánh</span>
+          </div>
+        )}
       </div>
 
       {/* 4. TIÊU ĐỀ BIỂU ĐỒ & NÚT GẠT SO VỚI CÙNG KỲ */}

@@ -279,14 +279,14 @@ const DashboardChart = ({
       <div className="w-full bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3.5 mb-6 flex items-start gap-3 text-xs leading-relaxed">
         <span className="text-base leading-none">🔥</span>
         <div className="flex-1 text-amber-900 dark:text-amber-300 font-medium">
-          {diffExpense > 0 ? (
+          {prevMonthExpense > 0 && diffExpense > 0 ? (
             <>
               <strong className="font-bold text-orange-600 dark:text-orange-400">
                 Tăng bất thường {diffExpense.toLocaleString('vi-VN')}đ
               </strong>{' '}
               so với cùng kỳ tháng trước
             </>
-          ) : diffExpense < 0 ? (
+          ) : prevMonthExpense > 0 && diffExpense < 0 ? (
             <>
               <strong className="font-bold text-emerald-600 dark:text-emerald-400">
                 Tiết kiệm được {Math.abs(diffExpense).toLocaleString('vi-VN')}đ

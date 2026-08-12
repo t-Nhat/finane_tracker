@@ -356,8 +356,9 @@ const getFluctuationData = async (req, res) => {
       });
     }
 
-    const totalAmount = currentData[6] || currentData.reduce((sum, v) => sum + v, 0);
-    const prevPeriodAmount = previousData[6] || currentData[5] || 0;
+    const totalAmount = currentData[6];
+    const prevPeriodAmount = currentData[5];
+    const hasPrevData = previousData.some(v => v !== 0) || currentData.slice(0, 6).some(v => v !== 0);
     const diffAmount = totalAmount - prevPeriodAmount;
 
     return res.status(200).json({
@@ -367,7 +368,9 @@ const getFluctuationData = async (req, res) => {
         currentData,
         previousData,
         totalAmount,
-        diffAmount
+        prevPeriodAmount,
+        diffAmount,
+        hasPrevData
       }
     });
   } catch (error) {
