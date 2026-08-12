@@ -133,7 +133,7 @@ router.get('/net-worth', async (req, res) => {
       debts.forEach(d => totalOrgDebt += Number(d.currentDebt || 0));
     } catch (e) {}
 
-    const netWorth = (cashBalance + totalLend + totalSavings) - (totalBorrow + totalOrgDebt);
+    const netWorth = (cashBalance + totalLend + totalSavings) - totalBorrow; // Không trừ totalOrgDebt vì đây chỉ là ghi nhớ nghĩa vụ tương lai
 
     return res.status(200).json({
       success: true,

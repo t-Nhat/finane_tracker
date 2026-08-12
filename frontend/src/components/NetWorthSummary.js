@@ -53,7 +53,7 @@ export default function NetWorthSummary() {
   const isPositive = netWorth >= 0;
   const breakdown = data.breakdown || { cashBalance: 0, totalLend: 0, totalSavings: 0, totalBorrow: 0, totalOrgDebt: 0 };
   const totalAssets = (breakdown.cashBalance || 0) + (breakdown.totalLend || 0) + (breakdown.totalSavings || 0);
-  const totalLiabilities = (breakdown.totalBorrow || 0) + (breakdown.totalOrgDebt || 0);
+  const totalLiabilities = breakdown.totalBorrow || 0; // Đã loại bỏ totalOrgDebt khỏi Tổng Nợ Phải Trả
 
   return (
     <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-slate-900 text-white p-6 sm:p-7 rounded-3xl shadow-xl border border-emerald-500/30 relative overflow-hidden">
@@ -122,8 +122,8 @@ export default function NetWorthSummary() {
               <span>Nợ cá nhân mượn:</span>
               <span className="font-mono font-bold">{(breakdown.totalBorrow || 0).toLocaleString('vi-VN')} đ</span>
             </div>
-            <div className="flex justify-between items-center text-white/90">
-              <span className="flex items-center gap-1.5"><CreditCard className="w-3.5 h-3.5 text-rose-300" /> Dư nợ Thẻ & Vay bank:</span>
+            <div className="flex justify-between items-center text-white/70 mt-3 pt-3 border-t border-white/10">
+              <span className="flex items-center gap-1.5 text-xs"><CreditCard className="w-3.5 h-3.5 opacity-70" /> Dư nợ Thẻ/Vay (Ghi nhớ):</span>
               <span className="font-mono font-bold">{(breakdown.totalOrgDebt || 0).toLocaleString('vi-VN')} đ</span>
             </div>
           </div>
