@@ -228,7 +228,6 @@ const getFluctuationData = async (req, res) => {
     const { metric = 'chitieu', timeframe = 'thang' } = req.query;
     const now = new Date();
 
-    // 1. Lấy tất cả giao dịch thuộc sở hữu của User (không bị lỗi so sánh kiêu Date/String trong MongoDB)
     const transactions = await Transaction.find({ user: userId });
 
     const labels = [];
@@ -236,7 +235,7 @@ const getFluctuationData = async (req, res) => {
     const previousData = Array(7).fill(0);
 
     if (timeframe === 'tuan') {
-      // Tính toán 7 tuần kết thúc ở tuần hiện tại
+      // 7 tuần kết thúc ở tuần này
       for (let i = 6; i >= 0; i--) {
         if (i === 0) labels.push('Tuần này');
         else if (i === 1) labels.push('Tuần trước');
@@ -247,28 +246,34 @@ const getFluctuationData = async (req, res) => {
         const d = new Date(t.date || t.createdAt);
         if (isNaN(d.getTime())) return;
 
-        const diffTime = Math.abs(now - d);
+        const diffTime = now - d;
+        if (diffTime < 0) return;
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         const weekIndex = Math.floor(diffDays / 7);
 
         let amount = Number(t.amount || 0);
         const tType = (t.type || '').toLowerCase();
 
-        let isMatchCurrent = false;
+        let isMatch = false;
         let value = 0;
 
         if (metric === 'chitieu' && (tType === 'chi' || tType === 'expense')) {
-          isMatchCurrent = true;
+          isMatch = true;
           value = amount;
         } else if (metric === 'thunhap' && (tType === 'thu' || tType === 'income')) {
-          isMatchCurrent = true;
+          isMatch = true;
           value = amount;
         } else if (metric === 'chenhlech') {
-          isMatchCurrent = true;
-          value = (tType === 'thu' || tType === 'income') ? amount : -amount;
+          if (tType === 'thu' || tType === 'income') {
+            isMatch = true;
+            value = amount;
+          } else if (tType === 'chi' || tType === 'expense') {
+            isMatch = true;
+            value = -amount;
+          }
         }
 
-        if (isMatchCurrent) {
+        if (isMatch) {
           if (weekIndex >= 0 && weekIndex < 7) {
             currentData[6 - weekIndex] += value;
           } else if (weekIndex >= 7 && weekIndex < 14) {
@@ -278,7 +283,6 @@ const getFluctuationData = async (req, res) => {
       });
 
     } else if (timeframe === 'nam') {
-      // 7 năm kết thúc ở năm nay
       const currentYear = now.getFullYear();
       for (let i = 6; i >= 0; i--) {
         labels.push(i === 0 ? 'Năm nay' : `${currentYear - i}`);
@@ -292,21 +296,26 @@ const getFluctuationData = async (req, res) => {
         let amount = Number(t.amount || 0);
         const tType = (t.type || '').toLowerCase();
 
-        let isMatchCurrent = false;
+        let isMatch = false;
         let value = 0;
 
         if (metric === 'chitieu' && (tType === 'chi' || tType === 'expense')) {
-          isMatchCurrent = true;
+          isMatch = true;
           value = amount;
         } else if (metric === 'thunhap' && (tType === 'thu' || tType === 'income')) {
-          isMatchCurrent = true;
+          isMatch = true;
           value = amount;
         } else if (metric === 'chenhlech') {
-          isMatchCurrent = true;
-          value = (tType === 'thu' || tType === 'income') ? amount : -amount;
+          if (tType === 'thu' || tType === 'income') {
+            isMatch = true;
+            value = amount;
+          } else if (tType === 'chi' || tType === 'expense') {
+            isMatch = true;
+            value = -amount;
+          }
         }
 
-        if (isMatchCurrent) {
+        if (isMatch) {
           if (yearDiff >= 0 && yearDiff < 7) {
             currentData[6 - yearDiff] += value;
           } else if (yearDiff >= 7 && yearDiff < 14) {
@@ -332,21 +341,26 @@ const getFluctuationData = async (req, res) => {
         let amount = Number(t.amount || 0);
         const tType = (t.type || '').toLowerCase();
 
-        let isMatchCurrent = false;
+        let isMatch = false;
         let value = 0;
 
         if (metric === 'chitieu' && (tType === 'chi' || tType === 'expense')) {
-          isMatchCurrent = true;
+          isMatch = true;
           value = amount;
         } else if (metric === 'thunhap' && (tType === 'thu' || tType === 'income')) {
-          isMatchCurrent = true;
+          isMatch = true;
           value = amount;
         } else if (metric === 'chenhlech') {
-          isMatchCurrent = true;
-          value = (tType === 'thu' || tType === 'income') ? amount : -amount;
+          if (tType === 'thu' || tType === 'income') {
+            isMatch = true;
+            value = amount;
+          } else if (tType === 'chi' || tType === 'expense') {
+            isMatch = true;
+            value = -amount;
+          }
         }
 
-        if (isMatchCurrent) {
+        if (isMatch) {
           if (monthDiff >= 0 && monthDiff < 7) {
             currentData[6 - monthDiff] += value;
           } else if (monthDiff >= 7 && monthDiff < 14) {
@@ -356,10 +370,10 @@ const getFluctuationData = async (req, res) => {
       });
     }
 
-    const totalAmount = currentData[6];
-    const prevPeriodAmount = currentData[5];
-    const hasPrevData = previousData.some(v => v !== 0) || currentData.slice(0, 6).some(v => v !== 0);
-    const diffAmount = totalAmount - prevPeriodAmount;
+    const totalAmount = currentData.reduce((sum, v) => sum + v, 0);
+    const prevPeriodTotal = previousData.reduce((sum, v) => sum + v, 0);
+    const hasPrevData = previousData.some(v => v !== 0);
+    const diffAmount = totalAmount - prevPeriodTotal;
 
     return res.status(200).json({
       success: true,
@@ -368,7 +382,7 @@ const getFluctuationData = async (req, res) => {
         currentData,
         previousData,
         totalAmount,
-        prevPeriodAmount,
+        prevPeriodAmount: prevPeriodTotal,
         diffAmount,
         hasPrevData
       }
