@@ -68,7 +68,7 @@ export default function CreditDebtManager() {
     if (!amount || isNaN(amount) || Number(amount) <= 0) return;
     try {
       const token = getToken();
-      await fetch(`${API_BASE}/${id}/pay`, {
+      const res = await fetch(`${API_BASE}/${id}/pay`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -76,6 +76,12 @@ export default function CreditDebtManager() {
         },
         body: JSON.stringify({ payAmount: Number(amount) })
       });
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.message || 'Lỗi trả nợ');
+        return;
+      }
+      alert('Thanh toán thành công!');
       fetchItems();
     } catch (err) {
       alert('Lỗi trả nợ: ' + err.message);
